@@ -156,6 +156,7 @@ uv run pre-commit run --all-files
 ## Testing Documentation
 
 - [Testing and Coverage Methodology](testing-and-coverage-methodology.md) - Comprehensive testing strategy and coverage standards
+- [Test Suite Refactoring Analysis](test-suite-refactoring-analysis.md) - Analysis of test redundancy and consolidation recommendations
 - [Test Implementation Analysis](test-implementation-analysis.md) - Details on test structure and implementation
 - [Coverage Gaps Analysis](coverage-gaps-analysis.md) - Analysis of code coverage and gaps
 
