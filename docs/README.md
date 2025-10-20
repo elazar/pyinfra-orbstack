@@ -153,6 +153,12 @@ uv run pre-commit install
 uv run pre-commit run --all-files
 ```
 
+## Testing Documentation
+
+- [Testing and Coverage Methodology](testing-and-coverage-methodology.md) - Comprehensive testing strategy and coverage standards
+- [Test Implementation Analysis](test-implementation-analysis.md) - Details on test structure and implementation
+- [Coverage Gaps Analysis](coverage-gaps-analysis.md) - Analysis of code coverage and gaps
+
 ## References
 
 - [Architecture Decision Records](https://github.com/joelparkerhenderson/architecture-decision-record) - Comprehensive guide to ADRs
