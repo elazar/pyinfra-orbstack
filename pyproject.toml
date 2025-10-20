@@ -1,0 +1,154 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pyinfra-orbstack"
+version = "0.1.0"
+description = "PyInfra connector for OrbStack VM and container management"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Matthew Turland", email = "me@matthewturland.com"},
+]
+maintainers = [
+    {name = "Matthew Turland", email = "me@matthewturland.com"},
+]
+keywords = ["pyinfra", "orbstack", "vm", "container", "automation", "infrastructure"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Utilities",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "pyinfra>=3.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=23.0.0",
+    "build>=1.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest>=7.0.0",
+    "twine>=4.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "black>=23.0.0",
+    "build>=1.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest>=7.0.0",
+    "twine>=4.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/elazar/pyinfra-orbstack"
+Documentation = "https://github.com/elazar/pyinfra-orbstack#readme"
+Repository = "https://github.com/elazar/pyinfra-orbstack"
+Issues = "https://github.com/elazar/pyinfra-orbstack/issues"
+Changelog = "https://github.com/elazar/pyinfra-orbstack/blob/main/CHANGELOG.md"
+
+[project.entry-points."pyinfra.connectors"]
+orbstack = "pyinfra_orbstack.connector:OrbStackConnector"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pyinfra_orbstack"]
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.flake8]
+max-line-length = 88
+# E203: Black disagrees with PEP 8 on whitespace before ':'
+# W503: Black disagrees with PEP 8 on line break before binary operator
+# E501: Black handles line length at 88 characters
+extend-ignore = ["E203", "W503", "E501"]
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    ".eggs",
+    "*.egg",
+    ".venv",
+    ".mypy_cache",
+    ".tox",
+]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+# PyInfra does not natively support comprehensive type hints (as of Oct 2025).
+# The @operation() decorator transforms functions in ways that make them appear
+# untyped and changes call signatures in ways mypy cannot understand.
+# TODO: Monitor https://github.com/Fizzadar/pyinfra for typing improvements
+[[tool.mypy.overrides]]
+module = "pyinfra_orbstack.operations.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_decorators = false
+# Disable checks that fail due to decorator transformation
+disable_error_code = ["misc", "call-arg", "arg-type"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--cov=src/pyinfra_orbstack",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
+markers = [
+    "integration: mark test as integration test requiring OrbStack",
+    "unit: mark test as unit test (can run without OrbStack)",
+    "slow: mark test as slow running",
+]

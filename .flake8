@@ -1,0 +1,17 @@
+[flake8]
+max-line-length = 88
+# E203: Black disagrees with PEP 8 on whitespace before ':'
+# W503: Black disagrees with PEP 8 on line break before binary operator
+# E501: Black handles line length at 88 characters
+# D*: Docstring conventions (too strict for this project)
+extend-ignore = E203, W503, E501, D
+exclude =
+    .git,
+    __pycache__,
+    build,
+    dist,
+    .eggs,
+    *.egg,
+    .venv,
+    .mypy_cache,
+    .tox
