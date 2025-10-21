@@ -76,7 +76,10 @@ class TestOrbStackIntegration:
         """Test VM listing functionality with real OrbStack."""
         # Get actual VM list from OrbStack
         result = subprocess.run(
-            ["orbctl", "list", "-", "json"], capture_output=True, text=True, timeout=10
+            ["orbctl", "list", "--format", "json"],
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
 
         assert result.returncode == 0
