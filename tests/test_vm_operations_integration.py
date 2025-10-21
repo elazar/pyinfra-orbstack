@@ -79,7 +79,10 @@ class TestVMOperationsIntegration(TestCase):
         """Test VM list operation with real OrbStack."""
         # Get actual VM list using orbctl directly
         result = subprocess.run(
-            ["orbctl", "list", "-", "json"], capture_output=True, text=True, timeout=10
+            ["orbctl", "list", "--format", "json"],
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
 
         assert result.returncode == 0
@@ -111,7 +114,10 @@ class TestVMOperationsIntegration(TestCase):
 
         # Verify VM exists
         list_result = subprocess.run(
-            ["orbctl", "list", "-", "json"], capture_output=True, text=True, timeout=10
+            ["orbctl", "list", "--format", "json"],
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
 
         assert list_result.returncode == 0
@@ -121,7 +127,7 @@ class TestVMOperationsIntegration(TestCase):
 
         # Test VM deletion
         delete_result = subprocess.run(
-            ["orbctl", "delete", "-", self.test_vm_name],
+            ["orbctl", "delete", "--force", self.test_vm_name],
             capture_output=True,
             text=True,
             timeout=30,
@@ -133,7 +139,10 @@ class TestVMOperationsIntegration(TestCase):
 
         # Verify VM is deleted
         list_result = subprocess.run(
-            ["orbctl", "list", "-", "json"], capture_output=True, text=True, timeout=10
+            ["orbctl", "list", "--format", "json"],
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
 
         assert list_result.returncode == 0
@@ -208,7 +217,10 @@ class TestVMOperationsIntegration(TestCase):
 
         # Verify VM is deleted
         list_result = subprocess.run(
-            ["orbctl", "list", "-", "json"], capture_output=True, text=True, timeout=10
+            ["orbctl", "list", "--format", "json"],
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         assert list_result.returncode == 0
         vms = json.loads(list_result.stdout)
@@ -269,7 +281,7 @@ class TestVMOperationsIntegration(TestCase):
 
             # Test force stop
             force_stop_result = subprocess.run(
-                ["orbctl", "stop", "-", self.test_vm_name],
+                ["orbctl", "stop", "--force", self.test_vm_name],
                 capture_output=True,
                 text=True,
                 timeout=30,
@@ -281,7 +293,7 @@ class TestVMOperationsIntegration(TestCase):
 
             # Test force delete
             force_delete_result = subprocess.run(
-                ["orbctl", "delete", "-", self.test_vm_name],
+                ["orbctl", "delete", "--force", self.test_vm_name],
                 capture_output=True,
                 text=True,
                 timeout=30,
@@ -349,7 +361,7 @@ class TestVMOperationsIntegration(TestCase):
                 if returncode == 0:
                     # Clean up successful creations
                     subprocess.run(
-                        ["orbctl", "delete", "-", vm_name],
+                        ["orbctl", "delete", "--force", vm_name],
                         capture_output=True,
                         timeout=30,
                     )
@@ -380,7 +392,7 @@ class TestVMOperationsIntegration(TestCase):
             start_time = time.time()
 
             delete_result = subprocess.run(
-                ["orbctl", "delete", "-", self.test_vm_name],
+                ["orbctl", "delete", "--force", self.test_vm_name],
                 capture_output=True,
                 text=True,
                 timeout=60,
@@ -442,7 +454,7 @@ class TestVMOperationsIntegration(TestCase):
 
             # Clean up
             subprocess.run(
-                ["orbctl", "delete", "-", self.test_vm_name],
+                ["orbctl", "delete", "--force", self.test_vm_name],
                 capture_output=True,
                 timeout=30,
             )
@@ -535,7 +547,7 @@ class TestVMOperationsEdgeCasesIntegration:
 
             # Clean up
             subprocess.run(
-                ["orbctl", "delete", "-", special_vm_name],
+                ["orbctl", "delete", "--force", special_vm_name],
                 capture_output=True,
                 timeout=30,
             )

@@ -54,7 +54,9 @@ host_data = [
         "orbstack_vm": True,
     }})
 ]
-"""
+""".format(
+            vm_name=vm_name
+        )
         inventory_path = os.path.join(self.temp_dir, filename)
         with open(inventory_path, "w") as f:
             f.write(inventory_content)
