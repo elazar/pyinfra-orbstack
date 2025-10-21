@@ -211,6 +211,76 @@ def track_test_vm():
     return _track
 
 
+@pytest.fixture(scope="session")
+def shared_vm_basic():
+    """
+    Session-scoped VM for basic tests.
+
+    Creates a single VM that is shared across all tests in the session.
+    This significantly reduces test runtime by avoiding repeated VM creation.
+    """
+    from tests.test_utils import create_vm_with_retry
+
+    vm_name = "pytest-shared-basic"
+    _test_vms_created.add(vm_name)
+
+    # Create VM
+    success = create_vm_with_retry(
+        "ubuntu:22.04", vm_name, max_retries=3, auto_cleanup=False
+    )
+    if not success:
+        pytest.skip(f"Could not create shared VM: {vm_name}")
+
+    # Start VM
+    subprocess.run(["orbctl", "start", vm_name], capture_output=True, timeout=30)
+
+    yield vm_name
+
+    # Cleanup happens via _test_vms_created tracking
+
+
+@pytest.fixture(scope="session")
+def shared_vm_with_user():
+    """
+    Session-scoped VM with custom user for user-specific tests.
+    """
+    from tests.test_utils import create_vm_with_retry
+
+    vm_name = "pytest-shared-user"
+    _test_vms_created.add(vm_name)
+
+    success = create_vm_with_retry(
+        "ubuntu:22.04", vm_name, user="testuser", max_retries=3, auto_cleanup=False
+    )
+    if not success:
+        pytest.skip(f"Could not create shared VM with user: {vm_name}")
+
+    subprocess.run(["orbctl", "start", vm_name], capture_output=True, timeout=30)
+
+    yield vm_name
+
+
+@pytest.fixture(scope="session")
+def shared_vm_with_arch():
+    """
+    Session-scoped VM with specific architecture for arch tests.
+    """
+    from tests.test_utils import create_vm_with_retry
+
+    vm_name = "pytest-shared-arch"
+    _test_vms_created.add(vm_name)
+
+    success = create_vm_with_retry(
+        "ubuntu:22.04", vm_name, arch="arm64", max_retries=3, auto_cleanup=False
+    )
+    if not success:
+        pytest.skip(f"Could not create shared VM with arch: {vm_name}")
+
+    subprocess.run(["orbctl", "start", vm_name], capture_output=True, timeout=30)
+
+    yield vm_name
+
+
 def pytest_runtest_setup(item):
     """Setup for each test run."""
     # Skip integration tests if OrbStack is not available

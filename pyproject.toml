@@ -151,4 +151,6 @@ markers = [
     "integration: mark test as integration test requiring OrbStack",
     "unit: mark test as unit test (can run without OrbStack)",
     "slow: mark test as slow running",
+    "e2e: mark test as end-to-end test",
+    "expensive: mark tests that create VMs (use -m 'not expensive' to skip)",
 ]
