@@ -4,10 +4,78 @@ Pytest configuration for PyInfra OrbStack tests.
 This file provides configuration, fixtures, and utilities for testing.
 """
 
+import atexit
+import json
 import platform
 import subprocess
 
 import pytest
+
+# Track test VMs created during this session
+_test_vms_created = set()
+
+
+def cleanup_test_vms():
+    """Clean up all test VMs created during this session."""
+    if not _test_vms_created:
+        return
+
+    print(f"\n\nCleaning up {len(_test_vms_created)} test VMs...")
+    for vm_name in _test_vms_created:
+        try:
+            subprocess.run(
+                ["orbctl", "delete", "--force", vm_name],
+                capture_output=True,
+                timeout=10,
+            )
+        except Exception:
+            pass  # Best effort cleanup
+    _test_vms_created.clear()
+
+
+def cleanup_orphaned_test_vms():
+    """Clean up any orphaned test VMs from previous runs."""
+    try:
+        result = subprocess.run(
+            ["orbctl", "list", "--format", "json"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode != 0:
+            return
+
+        vms = json.loads(result.stdout)
+        test_prefixes = [
+            "test-vm-",
+            "e2e-ops-vm-",
+            "deploy-test-vm-",
+            "consolidated-test-vm-",
+            "e2e-test-vm-",
+        ]
+        orphaned_vms = [
+            vm["name"]
+            for vm in vms
+            if any(prefix in vm["name"] for prefix in test_prefixes)
+        ]
+
+        if orphaned_vms:
+            print(f"\nCleaning up {len(orphaned_vms)} orphaned test VMs...")
+            for vm_name in orphaned_vms:
+                try:
+                    subprocess.run(
+                        ["orbctl", "delete", "--force", vm_name],
+                        capture_output=True,
+                        timeout=10,
+                    )
+                except Exception:
+                    pass
+    except Exception:
+        pass  # Best effort cleanup
+
+
+# Register cleanup to run at exit (handles crashes/interrupts)
+atexit.register(cleanup_test_vms)
 
 
 def pytest_configure(config):
@@ -19,6 +87,15 @@ def pytest_configure(config):
         "markers", "unit: mark test as unit test (can run without OrbStack)"
     )
     config.addinivalue_line("markers", "slow: mark test as slow running")
+    config.addinivalue_line("markers", "e2e: mark test as end-to-end test")
+
+    # Clean up orphaned test VMs from previous runs at session start
+    cleanup_orphaned_test_vms()
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Clean up test VMs at the end of the test session."""
+    cleanup_test_vms()
 
 
 def check_orbstack_available():
@@ -114,6 +191,24 @@ def mock_host_with_vm(mock_host, test_vm_name):
     """Fixture to provide a mock PyInfra host with VM name."""
     mock_host.data = {"vm_name": test_vm_name}
     return mock_host
+
+
+@pytest.fixture
+def track_test_vm():
+    """Fixture to track test VMs for automatic cleanup.
+
+    Usage in tests:
+        def test_something(track_test_vm):
+            vm_name = "my-test-vm"
+            track_test_vm(vm_name)
+            # Create VM...
+            # VM will be automatically cleaned up even if test fails
+    """
+
+    def _track(vm_name):
+        _test_vms_created.add(vm_name)
+
+    return _track
 
 
 def pytest_runtest_setup(item):

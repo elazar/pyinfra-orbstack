@@ -6,6 +6,26 @@ import subprocess
 import time
 from typing import Optional
 
+# Import cleanup tracking from conftest
+try:
+    from tests.conftest import _test_vms_created
+except ImportError:
+    # Fallback if running outside pytest
+    _test_vms_created = set()
+
+
+def register_test_vm_for_cleanup(vm_name: str) -> None:
+    """
+    Register a test VM for automatic cleanup.
+
+    This ensures the VM will be cleaned up even if the test fails or
+    the test process is interrupted.
+
+    Args:
+        vm_name: Name of the VM to register for cleanup
+    """
+    _test_vms_created.add(vm_name)
+
 
 def execute_orbctl_with_retry(
     cmd: list,
@@ -108,6 +128,7 @@ def create_vm_with_retry(
     arch: Optional[str] = None,
     user: Optional[str] = None,
     max_retries: int = 3,
+    auto_cleanup: bool = True,
 ) -> bool:
     """
     Create VM with retry logic for network resilience.
@@ -118,10 +139,15 @@ def create_vm_with_retry(
         arch: Architecture
         user: Default user
         max_retries: Maximum retry attempts
+        auto_cleanup: If True, register VM for automatic cleanup (default: True)
 
     Returns:
         True if successful, False otherwise
     """
+    # Register for cleanup before creating (handles failures/interrupts)
+    if auto_cleanup:
+        register_test_vm_for_cleanup(vm_name)
+
     cmd = ["orbctl", "create", image, vm_name]
 
     if arch:
