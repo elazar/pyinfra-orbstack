@@ -151,7 +151,7 @@ If tests fail with "No space left on device":
 orbctl list
 
 # Clean up test VMs
-python cleanup_test_vms.py
+python scripts/cleanup_test_vms.py
 
 # Or manually
 orbctl delete --force <vm-name>
@@ -167,7 +167,7 @@ orbctl list
 orbctl delete --force <vm-name>
 
 # Clean up all test VMs
-python cleanup_test_vms.py
+python scripts/cleanup_test_vms.py
 ```
 
 ### Test Isolation
@@ -187,7 +187,7 @@ If tests interfere with each other:
 2. **Mark expensive tests** with `@pytest.mark.expensive`
 3. **Run fast tests during development** (`pytest -c .pytest-fast.ini`)
 4. **Use parameterized tests** to reduce duplication
-5. **Clean up regularly** (`python cleanup_test_vms.py`)
+5. **Clean up regularly** (`python scripts/cleanup_test_vms.py`)
 
 ## Test Markers Reference
 
