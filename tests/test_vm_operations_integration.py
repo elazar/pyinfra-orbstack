@@ -534,7 +534,7 @@ class TestVMOperationsEdgeCasesIntegration:
         if create_result.returncode == 0:
             # Verify VM was created
             list_result = subprocess.run(
-                ["orbctl", "list", "-", "json"],
+                ["orbctl", "list", "--format", "json"],
                 capture_output=True,
                 text=True,
                 timeout=10,
