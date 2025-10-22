@@ -3,12 +3,104 @@ VM Lifecycle Operations for PyInfra OrbStack Connector
 
 Provides operations for managing OrbStack VMs including creation, deletion,
 start/stop, cloning, export/import, and information retrieval.
+
+This module separates command construction logic from operation definitions
+to enable better test coverage and maintainability.
 """
 
 from typing import Optional
 
 from pyinfra import host
 from pyinfra.api import operation
+
+
+# Command construction functions (testable without decorator)
+def build_vm_create_command(
+    name: str, image: str, arch: Optional[str] = None, user: Optional[str] = None
+) -> str:
+    """
+    Build the orbctl create command.
+
+    Args:
+        name: VM name
+        image: VM image/distro
+        arch: Architecture (arm64, amd64)
+        user: Default username
+
+    Returns:
+        str: The complete orbctl create command
+    """
+    cmd = ["orbctl", "create", image, name]
+
+    if arch:
+        cmd.extend(["--arch", arch])
+
+    if user:
+        cmd.extend(["--user", user])
+
+    return " ".join(cmd)
+
+
+def build_vm_clone_command(source_name: str, new_name: str) -> str:
+    """Build the orbctl clone command."""
+    return f"orbctl clone {source_name} {new_name}"
+
+
+def build_vm_export_command(name: str, output_path: str) -> str:
+    """Build the orbctl export command."""
+    return f"orbctl export {name} {output_path}"
+
+
+def build_vm_import_command(input_path: str, name: str) -> str:
+    """Build the orbctl import command."""
+    return f"orbctl import -n {name} {input_path}"
+
+
+def build_vm_rename_command(old_name: str, new_name: str) -> str:
+    """Build the orbctl rename command."""
+    return f"orbctl rename {old_name} {new_name}"
+
+
+def build_vm_delete_command(name: str, force: bool = False) -> str:
+    """Build the orbctl delete command."""
+    force_flag = "-f" if force else ""
+    return f"orbctl delete {force_flag} {name}".strip()
+
+
+def build_vm_start_command(name: str) -> str:
+    """Build the orbctl start command."""
+    return f"orbctl start {name}"
+
+
+def build_vm_stop_command(name: str, force: bool = False) -> str:
+    """Build the orbctl stop command."""
+    force_flag = "-f" if force else ""
+    return f"orbctl stop {force_flag} {name}".strip()
+
+
+def build_vm_restart_command(name: str) -> str:
+    """Build the orbctl restart command."""
+    return f"orbctl restart {name}"
+
+
+def build_vm_info_command(vm_name: str) -> str:
+    """Build the orbctl info command."""
+    return f"orbctl info {vm_name} --format json"
+
+
+def build_vm_list_command() -> str:
+    """Build the orbctl list command."""
+    return "orbctl list -f json"
+
+
+def build_ssh_info_command(machine: Optional[str] = None) -> str:
+    """Build the SSH info command."""
+    if machine:
+        return f"orbctl info {machine} --format json"
+    return "orbctl ssh"
+
+
+# PyInfra Operations (use command builders)
 
 
 @operation()
@@ -33,17 +125,7 @@ def vm_create(
         yield from vm_delete(name, force=True)
         return
 
-    # Build orbctl create command
-    cmd = ["orbctl", "create", image, name]
-
-    if arch:
-        cmd.extend(["--arch", arch])
-
-    if user:
-        cmd.extend(["--user", user])
-
-    # Yield the command for PyInfra to execute
-    yield " ".join(cmd)
+    yield build_vm_create_command(name, image, arch, user)
 
 
 @operation()
@@ -59,10 +141,7 @@ def vm_clone(source_name: str, new_name: str):
         source_name: Name of the VM to clone
         new_name: Name for the new cloned VM
     """
-    cmd = f"orbctl clone {source_name} {new_name}"
-
-    # Yield the command for PyInfra to execute
-    yield cmd
+    yield build_vm_clone_command(source_name, new_name)
 
 
 @operation()
@@ -76,10 +155,7 @@ def vm_export(name: str, output_path: str):
         name: VM name to export
         output_path: Path where the exported file will be saved (e.g., "backup.tar.zst")
     """
-    cmd = f"orbctl export {name} {output_path}"
-
-    # Yield the command for PyInfra to execute
-    yield cmd
+    yield build_vm_export_command(name, output_path)
 
 
 @operation()
@@ -93,10 +169,7 @@ def vm_import(input_path: str, name: str):
         input_path: Path to the exported VM file (e.g., "backup.tar.zst")
         name: Name for the imported VM
     """
-    cmd = f"orbctl import -n {name} {input_path}"
-
-    # Yield the command for PyInfra to execute
-    yield cmd
+    yield build_vm_import_command(input_path, name)
 
 
 @operation()
@@ -108,10 +181,7 @@ def vm_rename(old_name: str, new_name: str):
         old_name: Current VM name
         new_name: New VM name
     """
-    cmd = f"orbctl rename {old_name} {new_name}"
-
-    # Yield the command for PyInfra to execute
-    yield cmd
+    yield build_vm_rename_command(old_name, new_name)
 
 
 @operation()
@@ -123,11 +193,7 @@ def vm_delete(name: str, force: bool = False):
         name: VM name
         force: Force deletion without confirmation
     """
-    force_flag = "-f" if force else ""
-    cmd = f"orbctl delete {force_flag} {name}"
-
-    # Yield the command for PyInfra to execute
-    yield cmd
+    yield build_vm_delete_command(name, force)
 
 
 @operation()
@@ -138,10 +204,7 @@ def vm_start(name: str):
     Args:
         name: VM name
     """
-    cmd = f"orbctl start {name}"
-
-    # Yield the command for PyInfra to execute
-    yield cmd
+    yield build_vm_start_command(name)
 
 
 @operation()
@@ -153,11 +216,7 @@ def vm_stop(name: str, force: bool = False):
         name: VM name
         force: Force stop
     """
-    force_flag = "-f" if force else ""
-    cmd = f"orbctl stop {force_flag} {name}"
-
-    # Yield the command for PyInfra to execute
-    yield cmd
+    yield build_vm_stop_command(name, force)
 
 
 @operation()
@@ -168,10 +227,7 @@ def vm_restart(name: str):
     Args:
         name: VM name
     """
-    cmd = f"orbctl restart {name}"
-
-    # Yield the command for PyInfra to execute
-    yield cmd
+    yield build_vm_restart_command(name)
 
 
 @operation()
@@ -182,15 +238,11 @@ def vm_info():
     Returns:
         dict: VM information
     """
-    # VM name is inferred from host context
     vm_name = host.data.get("vm_name")
     if not vm_name:
         return {}
 
-    cmd = f"orbctl info {vm_name} --format json"
-
-    # Yield the command for PyInfra to execute
-    yield cmd
+    yield build_vm_info_command(vm_name)
 
 
 @operation()
@@ -201,10 +253,7 @@ def vm_list():
     Returns:
         list: List of VM information dictionaries
     """
-    cmd = "orbctl list -f json"
-
-    # Yield the command for PyInfra to execute
-    yield cmd
+    yield build_vm_list_command()
 
 
 @operation()
@@ -215,15 +264,11 @@ def vm_status():
     Returns:
         str: VM status
     """
-    # This operation depends on vm_info, so we need to get the info first
     vm_name = host.data.get("vm_name")
     if not vm_name:
         return "unknown"
 
-    cmd = f"orbctl info {vm_name} --format json"
-
-    # Yield the command for PyInfra to execute
-    yield cmd
+    yield build_vm_info_command(vm_name)
 
 
 @operation()
@@ -234,15 +279,11 @@ def vm_ip():
     Returns:
         str: VM IP address
     """
-    # This operation depends on vm_info, so we need to get the info first
     vm_name = host.data.get("vm_name")
     if not vm_name:
         return ""
 
-    cmd = f"orbctl info {vm_name} --format json"
-
-    # Yield the command for PyInfra to execute
-    yield cmd
+    yield build_vm_info_command(vm_name)
 
 
 @operation()
@@ -253,15 +294,11 @@ def vm_network_info():
     Returns:
         dict: Network information
     """
-    # This operation depends on vm_info, so we need to get the info first
     vm_name = host.data.get("vm_name")
     if not vm_name:
         return {}
 
-    cmd = f"orbctl info {vm_name} --format json"
-
-    # Yield the command for PyInfra to execute
-    yield cmd
+    yield build_vm_info_command(vm_name)
 
 
 @operation()
@@ -278,19 +315,10 @@ def ssh_info(machine: Optional[str] = None):
     Returns:
         str: SSH connection information
     """
-    # If machine is specified, use it; otherwise use current host's vm_name
     if machine is None:
         machine = host.data.get("vm_name", "")
 
-    # orbctl ssh shows general SSH information
-    # For specific machine, we can use orbctl info to get SSH details
-    if machine:
-        cmd = f"orbctl info {machine} --format json"
-    else:
-        cmd = "orbctl ssh"
-
-    # Yield the command for PyInfra to execute
-    yield cmd
+    yield build_ssh_info_command(machine)
 
 
 @operation()
@@ -307,16 +335,10 @@ def ssh_connect_string(machine: Optional[str] = None):
     Returns:
         str: SSH connection string
     """
-    # Get machine name from parameter or host data
     if machine is None:
         machine = host.data.get("vm_name", "")
 
     if not machine:
         return "Error: No machine specified"
 
-    # OrbStack SSH format is: ssh <machine>@orb
-    # But we'll get the actual info from orbctl
-    cmd = f"orbctl info {machine} --format json"
-
-    # Yield the command for PyInfra to execute
-    yield cmd
+    yield build_ssh_info_command(machine)
