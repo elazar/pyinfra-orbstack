@@ -12,11 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial project structure and setup
 - Basic OrbStackConnector class with PyInfra integration
 - VM lifecycle operations (create, delete, start, stop, restart)
+- VM cloning operation for duplicating VMs
+- VM export/import operations for backup and restore
+- VM rename operation for changing VM names
 - VM information operations (info, list, status, ip, network_info)
+- SSH configuration operations (ssh_info, ssh_connect_string)
 - File transfer capabilities (put_file, get_file)
 - Command execution with user and working directory support
 - Automatic VM discovery and grouping
-- Comprehensive test suite with mocking
+- Comprehensive test suite with mocking (161 tests)
 - PyPI packaging configuration
 - Documentation and examples
 - Development standards documentation (Semantic Versioning, Conventional Commits, Keep a Changelog)

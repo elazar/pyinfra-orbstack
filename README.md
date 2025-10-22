@@ -9,10 +9,12 @@ The PyInfra OrbStack Connector provides seamless integration between PyInfra and
 ## Features
 
 - **Native PyInfra Integration**: Use the `@orbstack` connector for seamless VM management
-- **VM Lifecycle Management**: Create, start, stop, restart, and delete VMs
+- **VM Lifecycle Management**: Create, start, stop, restart, clone, rename, and delete VMs
+- **VM Export/Import**: Backup and restore VMs with export/import operations
 - **Command Execution**: Run commands inside VMs with proper user and working directory support
 - **File Transfer**: Upload and download files to/from VMs
 - **Information Retrieval**: Get VM status, IP addresses, and network information
+- **SSH Configuration**: Get SSH connection details and connection strings
 - **Cross-VM Communication**: Test connectivity between VMs
 
 ## Installation
@@ -107,7 +109,8 @@ inventory.add_host("@orbstack/my-vm", {
 
 ```python
 from pyinfra_orbstack.operations.vm import (
-    vm_create, vm_delete, vm_start, vm_stop, vm_restart
+    vm_create, vm_delete, vm_start, vm_stop, vm_restart,
+    vm_clone, vm_export, vm_import, vm_rename
 )
 
 # Create a new VM
@@ -120,6 +123,30 @@ vm_create(
 
 # Start a VM
 vm_start("test-vm")
+
+# Clone a VM
+vm_clone(
+    source_name="test-vm",
+    new_name="test-vm-clone",
+)
+
+# Export a VM
+vm_export(
+    name="test-vm",
+    output_path="/tmp/test-vm-backup.tar.zst",
+)
+
+# Import a VM
+vm_import(
+    input_path="/tmp/test-vm-backup.tar.zst",
+    name="test-vm-restored",
+)
+
+# Rename a VM
+vm_rename(
+    old_name="test-vm",
+    new_name="production-vm",
+)
 
 # Stop a VM
 vm_stop("test-vm", force=True)
@@ -159,6 +186,22 @@ print(f"VM IP: {ip}")
 network_info = vm_network_info()
 print(f"IPv4: {network_info['ip4']}")
 print(f"IPv6: {network_info['ip6']}")
+```
+
+### SSH Configuration Operations
+
+```python
+from pyinfra_orbstack.operations.vm import (
+    ssh_info, ssh_connect_string
+)
+
+# Get SSH connection information
+ssh_details = ssh_info("my-vm")
+print(f"SSH Details: {ssh_details}")
+
+# Get SSH connection string
+conn_str = ssh_connect_string("my-vm")
+print(f"Connect with: {conn_str}")
 ```
 
 ## Connector Features

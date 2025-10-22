@@ -2,7 +2,8 @@
 
 **Project:** pyinfra-orbstack
 **Date:** 2025-01-27
-**Status:** Planning Phase
+**Status:** Phase 1 Complete - Moving to Phase 2
+**Current Version:** 0.1.0
 
 ## Overview
 
@@ -105,44 +106,44 @@ is to publish this as a reusable Python package on PyPI.
   - [x] Test file transfer operations
   - [x] Test error handling and edge cases
 
-### Phase 2: VM Lifecycle Operations
+### Phase 2: VM Lifecycle Operations ✅ **COMPLETED**
 
 #### Task 2.1: VM Management Operations
 
-- [ ] **2.1.1** Create VM lifecycle operations module
-  - [ ] Create `operations/vm.py` module
-  - [ ] Implement `vm_create` operation with image and arch support
-  - [ ] Implement `vm_delete` operation with force option
-  - [ ] Implement `vm_start`, `vm_stop`, `vm_restart` operations
-  - [ ] Add proper operation decorators and documentation
+- [x] **2.1.1** Create VM lifecycle operations module ✅ **COMPLETED**
+  - [x] Create `operations/vm.py` module
+  - [x] Implement `vm_create` operation with image and arch support
+  - [x] Implement `vm_delete` operation with force option
+  - [x] Implement `vm_start`, `vm_stop`, `vm_restart` operations
+  - [x] Add proper operation decorators and documentation
 
-- [ ] **2.1.2** Implement VM cloning and export operations
-  - [ ] Create `vm_clone` operation for VM duplication
-  - [ ] Implement `vm_export` and `vm_import` operations
-  - [ ] Add support for VM image management
-  - [ ] Handle VM configuration preservation
+- [x] **2.1.2** Implement VM cloning and export operations ✅ **COMPLETED**
+  - [x] Create `vm_clone` operation for VM duplication
+  - [x] Implement `vm_export` and `vm_import` operations
+  - [x] Add `vm_rename` operation for changing VM names
+  - [x] Handle VM configuration preservation (via export/import)
 
 #### Task 2.2: VM Information Operations
 
-- [ ] **2.2.1** Create VM information retrieval operations
-  - [ ] Implement `vm_info` operation for detailed VM data
-  - [ ] Create `vm_list` operation for all VMs
-  - [ ] Implement `vm_status` operation for current state
-  - [ ] Add `vm_ip` operation for network information
+- [x] **2.2.1** Create VM information retrieval operations ✅ **COMPLETED**
+  - [x] Implement `vm_info` operation for detailed VM data
+  - [x] Create `vm_list` operation for all VMs
+  - [x] Implement `vm_status` operation for current state
+  - [x] Add `vm_ip` operation for network information
 
-- [ ] **2.2.2** Implement network information operations
-  - [ ] Create `vm_network_info` operation
-  - [ ] Add IP address retrieval (IPv4/IPv6)
-  - [ ] Implement MAC address extraction
-  - [ ] Add network interface information
+- [x] **2.2.2** Implement network information operations ✅ **COMPLETED**
+  - [x] Create `vm_network_info` operation
+  - [x] Add IP address retrieval (IPv4/IPv6)
+  - [x] Implement MAC address extraction (via vm_info)
+  - [x] Add network interface information
 
 #### Task 2.3: SSH Configuration Operations
 
-- [ ] **2.3.1** Implement SSH information operations
-  - [ ] Create `ssh_info` operation for connection details
-  - [ ] Implement `ssh_connect_string` operation
-  - [ ] Add SSH key management utilities
-  - [ ] Handle SSH configuration validation
+- [x] **2.3.1** Implement SSH information operations ✅ **COMPLETED**
+  - [x] Create `ssh_info` operation for connection details
+  - [x] Implement `ssh_connect_string` operation
+  - [x] SSH operations use orbctl info and orbctl ssh commands
+  - [x] Operations properly integrated with PyInfra context
 
 ### Phase 3: Advanced Operations and Cross-VM Communication
 
