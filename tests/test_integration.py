@@ -489,5 +489,292 @@ class TestOrbStackIntegrationEdgeCases:
             assert success is True
 
 
+class TestPhase3BConfigIntegration:
+    """Integration tests for Phase 3B configuration management operations."""
+
+    def test_config_get_cpu(self):
+        """Test getting CPU configuration."""
+        result = subprocess.run(
+            ["orbctl", "config", "get", "cpu"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        assert result.returncode == 0
+        # Parse output - may be single value or key: value format
+        output = result.stdout.strip()
+        if ":" in output:
+            # Parse "key: value" format or full config output
+            for line in output.split("\n"):
+                if line.startswith("cpu:"):
+                    cpu_value = line.split(":", 1)[1].strip()
+                    assert cpu_value.isdigit()
+                    assert int(cpu_value) > 0
+                    return
+        else:
+            # Single value format
+            assert output.isdigit()
+            assert int(output) > 0
+
+    def test_config_get_memory(self):
+        """Test getting memory configuration."""
+        result = subprocess.run(
+            ["orbctl", "config", "get", "memory_mib"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        assert result.returncode == 0
+        # Parse output - may be single value or key: value format
+        output = result.stdout.strip()
+        if ":" in output:
+            # Parse "key: value" format or full config output
+            for line in output.split("\n"):
+                if line.startswith("memory_mib:"):
+                    memory_value = line.split(":", 1)[1].strip()
+                    assert memory_value.isdigit()
+                    assert int(memory_value) > 0
+                    return
+        else:
+            # Single value format
+            assert output.isdigit()
+            assert int(output) > 0
+
+    def test_config_show(self):
+        """Test showing all configuration."""
+        result = subprocess.run(
+            ["orbctl", "config", "show"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        assert result.returncode == 0
+        output = result.stdout
+
+        # Verify expected configuration keys are present
+        assert "cpu:" in output
+        assert "memory_mib:" in output
+        assert "network.subnet4:" in output
+
+    def test_config_get_network_subnet(self):
+        """Test getting network subnet configuration."""
+        result = subprocess.run(
+            ["orbctl", "config", "get", "network.subnet4"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        assert result.returncode == 0
+        subnet = result.stdout.strip()
+        # Verify it looks like an IP subnet (contains dots and slash)
+        assert "." in subnet
+        assert "/" in subnet
+
+    def test_config_get_rosetta(self):
+        """Test getting Rosetta configuration."""
+        result = subprocess.run(
+            ["orbctl", "config", "get", "rosetta"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        assert result.returncode == 0
+        # Parse output - may be single value or key: value format
+        output = result.stdout.strip()
+        if ":" in output:
+            # Parse "key: value" format or full config output
+            for line in output.split("\n"):
+                if line.startswith("rosetta:"):
+                    rosetta_value = line.split(":", 1)[1].strip()
+                    assert rosetta_value in ["true", "false"]
+                    return
+        else:
+            # Single value format
+            assert output in ["true", "false"]
+
+    def test_config_get_nested_keys(self):
+        """Test getting nested configuration keys."""
+        nested_keys = [
+            "docker.expose_ports_to_lan",
+            "machines.forward_ports",
+            "network.https",
+            "setup.use_admin",
+        ]
+
+        for key in nested_keys:
+            result = subprocess.run(
+                ["orbctl", "config", "get", key],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+
+            # All these keys should exist
+            assert result.returncode == 0
+            assert len(result.stdout.strip()) > 0
+
+    def test_config_set_and_get(self):
+        """Test setting and getting a non-critical configuration value."""
+        # Use a safe config value to test (app.start_at_login)
+        test_key = "app.start_at_login"
+
+        # Helper to extract value from output
+        def get_value(output, key):
+            for line in output.split("\n"):
+                if line.startswith(f"{key}:"):
+                    return line.split(":", 1)[1].strip()
+            return output.strip()
+
+        # Get current value
+        get_result = subprocess.run(
+            ["orbctl", "config", "get", test_key],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        original_value = get_value(get_result.stdout, test_key)
+
+        try:
+            # Set to opposite value
+            new_value = "false" if original_value == "true" else "true"
+            set_result = subprocess.run(
+                ["orbctl", "config", "set", test_key, new_value],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+
+            assert set_result.returncode == 0
+
+            # Verify the change
+            verify_result = subprocess.run(
+                ["orbctl", "config", "get", test_key],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+
+            assert verify_result.returncode == 0
+            assert get_value(verify_result.stdout, test_key) == new_value
+
+        finally:
+            # Restore original value
+            subprocess.run(
+                ["orbctl", "config", "set", test_key, original_value],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+
+    def test_vm_username_configuration(self):
+        """Test per-VM username configuration."""
+
+        # Helper to extract value from output
+        def get_value(output, key):
+            for line in output.split("\n"):
+                if line.startswith(f"{key}:"):
+                    return line.split(":", 1)[1].strip()
+            return output.strip()
+
+        # Get list of existing VMs
+        list_result = subprocess.run(
+            ["orbctl", "list", "--format", "json"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        if list_result.returncode == 0:
+            vms = json.loads(list_result.stdout)
+
+            if vms:
+                # Use the first available VM
+                vm_name = vms[0]["name"]
+                test_username = "test-user-integration"
+                config_key = f"machine.{vm_name}.username"
+
+                # Get current username if it exists
+                get_result = subprocess.run(
+                    ["orbctl", "config", "get", config_key],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                original_username = (
+                    get_value(get_result.stdout, config_key)
+                    if get_result.returncode == 0
+                    else None
+                )
+
+                try:
+                    # Set test username
+                    set_result = subprocess.run(
+                        [
+                            "orbctl",
+                            "config",
+                            "set",
+                            config_key,
+                            test_username,
+                        ],
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
+                    )
+
+                    assert set_result.returncode == 0
+
+                    # Verify the change
+                    verify_result = subprocess.run(
+                        ["orbctl", "config", "get", config_key],
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
+                    )
+
+                    assert verify_result.returncode == 0
+                    assert get_value(verify_result.stdout, config_key) == test_username
+
+                finally:
+                    # Restore original username if it existed
+                    if original_username:
+                        subprocess.run(
+                            [
+                                "orbctl",
+                                "config",
+                                "set",
+                                config_key,
+                                original_username,
+                            ],
+                            capture_output=True,
+                            text=True,
+                            timeout=10,
+                        )
+
+    def test_config_show_structure(self):
+        """Test that config show output has expected structure."""
+        result = subprocess.run(
+            ["orbctl", "config", "show"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        assert result.returncode == 0
+        lines = result.stdout.strip().split("\n")
+
+        # Verify each line has key: value format
+        for line in lines:
+            if line.strip():  # Skip empty lines
+                assert ":" in line, f"Invalid config line format: {line}"
+                key, value = line.split(":", 1)
+                assert len(key.strip()) > 0
+                assert len(value.strip()) > 0
+
+
 # Mark all tests as integration tests
 pytestmark = pytest.mark.integration

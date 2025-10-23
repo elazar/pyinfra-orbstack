@@ -6,6 +6,9 @@ into separate functions improves test coverage reporting.
 """
 
 from pyinfra_orbstack.operations.vm import (
+    build_config_get_command,
+    build_config_set_command,
+    build_config_show_command,
     build_ssh_info_command,
     build_vm_clone_command,
     build_vm_create_command,
@@ -18,6 +21,7 @@ from pyinfra_orbstack.operations.vm import (
     build_vm_restart_command,
     build_vm_start_command,
     build_vm_stop_command,
+    build_vm_username_set_command,
 )
 
 
@@ -245,3 +249,204 @@ class TestCommandBuilderIntegration:
         # Delete
         delete_cmd = build_vm_delete_command(vm_name, force=True)
         assert "orbctl delete -f" in delete_cmd
+
+
+# Phase 3B: Configuration Management Command Builder Tests
+
+
+class TestConfigGetCommandBuilder:
+    """Test orbstack_config_get command builder."""
+
+    def test_get_cpu_config(self):
+        """Test getting CPU configuration."""
+        cmd = build_config_get_command("cpu")
+        assert cmd == "orbctl config get cpu"
+
+    def test_get_memory_config(self):
+        """Test getting memory configuration."""
+        cmd = build_config_get_command("memory_mib")
+        assert cmd == "orbctl config get memory_mib"
+
+    def test_get_network_config(self):
+        """Test getting network configuration."""
+        cmd = build_config_get_command("network.subnet4")
+        assert cmd == "orbctl config get network.subnet4"
+
+    def test_get_nested_config(self):
+        """Test getting nested configuration."""
+        cmd = build_config_get_command("docker.expose_ports_to_lan")
+        assert cmd == "orbctl config get docker.expose_ports_to_lan"
+
+    def test_get_rosetta_config(self):
+        """Test getting Rosetta configuration."""
+        cmd = build_config_get_command("rosetta")
+        assert cmd == "orbctl config get rosetta"
+
+
+class TestConfigSetCommandBuilder:
+    """Test orbstack_config_set command builder."""
+
+    def test_set_cpu_config(self):
+        """Test setting CPU configuration."""
+        cmd = build_config_set_command("cpu", "8")
+        assert cmd == "orbctl config set cpu 8"
+
+    def test_set_memory_config(self):
+        """Test setting memory configuration."""
+        cmd = build_config_set_command("memory_mib", "16384")
+        assert cmd == "orbctl config set memory_mib 16384"
+
+    def test_set_boolean_config(self):
+        """Test setting boolean configuration."""
+        cmd = build_config_set_command("rosetta", "true")
+        assert cmd == "orbctl config set rosetta true"
+
+    def test_set_network_config(self):
+        """Test setting network configuration."""
+        cmd = build_config_set_command("network.subnet4", "192.168.100.0/24")
+        assert cmd == "orbctl config set network.subnet4 192.168.100.0/24"
+
+    def test_set_nested_config(self):
+        """Test setting nested configuration."""
+        cmd = build_config_set_command("setup.use_admin", "false")
+        assert cmd == "orbctl config set setup.use_admin false"
+
+
+class TestConfigShowCommandBuilder:
+    """Test orbstack_config_show command builder."""
+
+    def test_show_config(self):
+        """Test showing all configuration."""
+        cmd = build_config_show_command()
+        assert cmd == "orbctl config show"
+
+
+class TestVMUsernameSetCommandBuilder:
+    """Test vm_username_set command builder."""
+
+    def test_set_username_basic(self):
+        """Test setting VM username."""
+        cmd = build_vm_username_set_command("test-vm", "ubuntu")
+        assert cmd == "orbctl config set machine.test-vm.username ubuntu"
+
+    def test_set_username_different_user(self):
+        """Test setting different usernames for different VMs."""
+        cmd1 = build_vm_username_set_command("web-server", "nginx")
+        cmd2 = build_vm_username_set_command("db-server", "postgres")
+
+        assert cmd1 == "orbctl config set machine.web-server.username nginx"
+        assert cmd2 == "orbctl config set machine.db-server.username postgres"
+
+    def test_set_username_with_hyphens(self):
+        """Test setting username for VM with hyphens."""
+        cmd = build_vm_username_set_command("my-test-vm-01", "testuser")
+        assert cmd == "orbctl config set machine.my-test-vm-01.username testuser"
+
+    def test_set_username_with_underscores(self):
+        """Test setting username for VM with underscores."""
+        cmd = build_vm_username_set_command("test_vm_prod", "admin")
+        assert cmd == "orbctl config set machine.test_vm_prod.username admin"
+
+
+class TestConfigCommandBuilderEdgeCases:
+    """Test edge cases for configuration command builders."""
+
+    def test_config_keys_with_dots(self):
+        """Test configuration keys with multiple dots."""
+        keys = [
+            "network.subnet4",
+            "network.https",
+            "docker.expose_ports_to_lan",
+            "machine.test-vm.username",
+        ]
+
+        for key in keys:
+            cmd = build_config_get_command(key)
+            assert key in cmd
+            assert "orbctl config get" in cmd
+
+    def test_config_values_with_special_chars(self):
+        """Test configuration values with special characters."""
+        test_cases = [
+            ("network.subnet4", "192.168.100.0/24"),
+            ("machines.forward_ports", "true"),
+            ("setup.use_admin", "false"),
+        ]
+
+        for key, value in test_cases:
+            cmd = build_config_set_command(key, value)
+            assert key in cmd
+            assert value in cmd
+
+    def test_numeric_values_as_strings(self):
+        """Test numeric configuration values passed as strings."""
+        cmd1 = build_config_set_command("cpu", "16")
+        cmd2 = build_config_set_command("memory_mib", "32768")
+
+        assert "cpu 16" in cmd1
+        assert "memory_mib 32768" in cmd2
+
+
+class TestConfigWorkflows:
+    """Test configuration management workflows."""
+
+    def test_resource_allocation_workflow(self):
+        """Test commands for resource allocation workflow."""
+        # Get current CPU
+        get_cpu = build_config_get_command("cpu")
+        assert get_cpu == "orbctl config get cpu"
+
+        # Set new CPU value
+        set_cpu = build_config_set_command("cpu", "12")
+        assert set_cpu == "orbctl config set cpu 12"
+
+        # Get current memory
+        get_mem = build_config_get_command("memory_mib")
+        assert get_mem == "orbctl config get memory_mib"
+
+        # Set new memory value
+        set_mem = build_config_set_command("memory_mib", "24576")
+        assert set_mem == "orbctl config set memory_mib 24576"
+
+    def test_vm_user_configuration_workflow(self):
+        """Test commands for VM user configuration workflow."""
+        vms = [
+            ("web-1", "nginx"),
+            ("web-2", "nginx"),
+            ("db-1", "postgres"),
+            ("cache-1", "redis"),
+        ]
+
+        for vm_name, username in vms:
+            cmd = build_vm_username_set_command(vm_name, username)
+            assert vm_name in cmd
+            assert username in cmd
+            assert "orbctl config set" in cmd
+
+    def test_inspect_and_modify_workflow(self):
+        """Test commands for inspect and modify workflow."""
+        # Show all config
+        show_cmd = build_config_show_command()
+        assert show_cmd == "orbctl config show"
+
+        # Get specific value
+        get_cmd = build_config_get_command("rosetta")
+        assert "get rosetta" in get_cmd
+
+        # Set new value
+        set_cmd = build_config_set_command("rosetta", "false")
+        assert "set rosetta false" in set_cmd
+
+    def test_multi_vm_setup_workflow(self):
+        """Test commands for setting up multiple VMs."""
+        vm_configs = {
+            "dev-vm": "developer",
+            "test-vm": "tester",
+            "staging-vm": "deployer",
+            "prod-vm": "admin",
+        }
+
+        for vm_name, username in vm_configs.items():
+            cmd = build_vm_username_set_command(vm_name, username)
+            expected = f"orbctl config set machine.{vm_name}.username {username}"
+            assert cmd == expected

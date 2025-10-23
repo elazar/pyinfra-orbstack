@@ -204,6 +204,58 @@ conn_str = ssh_connect_string("my-vm")
 print(f"Connect with: {conn_str}")
 ```
 
+### Configuration Management Operations (Phase 3B)
+
+```python
+from pyinfra_orbstack.operations.vm import (
+    orbstack_config_get, orbstack_config_set,
+    orbstack_config_show, vm_username_set
+)
+
+# Get global OrbStack configuration
+cpu_count = orbstack_config_get("cpu")
+print(f"CPU cores allocated to OrbStack: {cpu_count}")
+
+memory_mib = orbstack_config_get("memory_mib")
+print(f"Memory allocated to OrbStack: {memory_mib} MiB")
+
+# Show all configuration
+all_config = orbstack_config_show()
+print(all_config)
+
+# Set global configuration (affects all VMs)
+orbstack_config_set("memory_mib", "24576")  # Set to 24GB
+
+# Set per-VM username (only per-VM setting available)
+vm_username_set("web-server", "nginx")
+vm_username_set("db-server", "postgres")
+```
+
+**Important Notes about Configuration:**
+
+- **Global vs. Per-VM Settings**: Most OrbStack settings are **global** (affect all VMs):
+  - `cpu`: Total CPU cores allocated to OrbStack
+  - `memory_mib`: Total memory allocated to OrbStack
+  - `network.subnet4`: Network subnet for all VMs
+  - These are shared resources, not per-VM limits
+
+- **Per-VM Settings**: Only `machine.<vm-name>.username` is per-VM:
+  ```python
+  # This is the ONLY per-VM configuration available
+  vm_username_set("my-vm", "ubuntu")
+  ```
+
+- **Common Configuration Keys**:
+  - `cpu` - Number of CPU cores (global)
+  - `memory_mib` - Memory in MiB (global)
+  - `network.subnet4` - IPv4 subnet
+  - `rosetta` - Rosetta translation (true/false)
+  - `docker.expose_ports_to_lan` - Expose Docker ports to LAN
+  - `machines.forward_ports` - Enable port forwarding
+  - `network.https` - Enable HTTPS support
+
+- **Effect of Changes**: Some configuration changes may require restarting OrbStack to take effect
+
 ## Connector Features
 
 ### Automatic VM Discovery
