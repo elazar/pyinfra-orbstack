@@ -154,6 +154,26 @@ def build_vm_username_set_command(vm_name: str, username: str) -> str:
     return f"orbctl config set machine.{vm_name}.username {username}"
 
 
+# Phase 3C: Logging and Diagnostics Command Builders
+
+
+def build_vm_logs_command(vm_name: str, all_logs: bool = False) -> str:
+    """
+    Build the orbctl logs command.
+
+    Args:
+        vm_name: VM name
+        all_logs: Whether to show all logs (useful for debugging)
+
+    Returns:
+        str: The complete orbctl logs command
+    """
+    cmd = f"orbctl logs {vm_name}"
+    if all_logs:
+        cmd += " --all"
+    return cmd
+
+
 # PyInfra Operations (use command builders)
 
 
@@ -507,3 +527,73 @@ def vm_username_set(vm_name: str, username: str):
         # Sets default username for db-server VM to postgres
     """
     yield build_vm_username_set_command(vm_name, username)
+
+
+# Phase 3C: Logging and Diagnostics Operations
+
+
+@operation()
+def vm_logs(all_logs: bool = False):
+    """
+    Get VM system logs for current host.
+
+    Retrieves the unified system logs for the VM. Useful for debugging
+    VM startup issues, system errors, or general troubleshooting.
+
+    Args:
+        all_logs: Show all logs including debug information (default: False)
+
+    Returns:
+        str: VM log output
+
+    Example:
+        >>> vm_logs()
+        # Returns recent VM logs
+        >>> vm_logs(all_logs=True)
+        # Returns all logs including debug information
+
+    Note:
+        This retrieves OrbStack's unified logs for the VM, not logs from
+        inside the VM. To get logs from services running inside the VM,
+        use standard PyInfra operations like server.shell().
+    """
+    vm_name = host.data.get("vm_name")
+    if not vm_name:
+        return "Error: No VM name specified"
+
+    yield build_vm_logs_command(vm_name, all_logs)
+
+
+@operation()
+def vm_status_detailed():
+    """
+    Get detailed status information for current VM.
+
+    Provides comprehensive status including:
+    - Running state (running, stopped, etc.)
+    - Resource usage information
+    - Network configuration
+    - Recent activity
+
+    Returns:
+        dict: Detailed VM status information
+
+    Example:
+        >>> vm_status_detailed()
+        # Returns: {
+        #   'name': 'my-vm',
+        #   'state': 'running',
+        #   'ip4': '192.168.138.2',
+        #   'image': 'ubuntu:22.04',
+        #   ...
+        # }
+
+    Note:
+        This uses the same orbctl info command as vm_info() but is
+        intended for status checking and monitoring purposes.
+    """
+    vm_name = host.data.get("vm_name")
+    if not vm_name:
+        return {}
+
+    yield build_vm_info_command(vm_name)

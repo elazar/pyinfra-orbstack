@@ -17,6 +17,7 @@ from pyinfra_orbstack.operations.vm import (
     build_vm_import_command,
     build_vm_info_command,
     build_vm_list_command,
+    build_vm_logs_command,
     build_vm_rename_command,
     build_vm_restart_command,
     build_vm_start_command,
@@ -450,3 +451,114 @@ class TestConfigWorkflows:
             cmd = build_vm_username_set_command(vm_name, username)
             expected = f"orbctl config set machine.{vm_name}.username {username}"
             assert cmd == expected
+
+
+# Phase 3C: Logging and Diagnostics Command Builder Tests
+
+
+class TestVMLogsCommandBuilder:
+    """Test vm_logs command builder."""
+
+    def test_basic_logs(self):
+        """Test basic VM logs command."""
+        cmd = build_vm_logs_command("test-vm")
+        assert cmd == "orbctl logs test-vm"
+
+    def test_logs_with_all_flag(self):
+        """Test VM logs with --all flag."""
+        cmd = build_vm_logs_command("test-vm", all_logs=True)
+        assert cmd == "orbctl logs test-vm --all"
+
+    def test_logs_without_all_flag(self):
+        """Test VM logs without --all flag explicitly."""
+        cmd = build_vm_logs_command("test-vm", all_logs=False)
+        assert cmd == "orbctl logs test-vm"
+
+    def test_logs_various_vm_names(self):
+        """Test logs command with various VM names."""
+        test_vms = [
+            "web-server",
+            "db_server",
+            "cache-01",
+            "prod-vm",
+        ]
+
+        for vm_name in test_vms:
+            cmd = build_vm_logs_command(vm_name)
+            assert vm_name in cmd
+            assert "orbctl logs" in cmd
+
+
+class TestLogsCommandBuilderEdgeCases:
+    """Test edge cases for logs command builder."""
+
+    def test_logs_vm_names_with_special_chars(self):
+        """Test logs with VM names containing special characters."""
+        vm_names = [
+            "test-vm-01",
+            "web_server_prod",
+            "db-cluster-primary",
+            "cache_01",
+        ]
+
+        for vm_name in vm_names:
+            cmd = build_vm_logs_command(vm_name)
+            assert vm_name in cmd
+            cmd_all = build_vm_logs_command(vm_name, all_logs=True)
+            assert vm_name in cmd_all
+            assert "--all" in cmd_all
+
+
+class TestLogsWorkflows:
+    """Test logging and diagnostics workflows."""
+
+    def test_debugging_workflow(self):
+        """Test commands for VM debugging workflow."""
+        vm_name = "problem-vm"
+
+        # Get basic logs
+        basic_logs = build_vm_logs_command(vm_name)
+        assert basic_logs == f"orbctl logs {vm_name}"
+
+        # Get detailed logs for debugging
+        detailed_logs = build_vm_logs_command(vm_name, all_logs=True)
+        assert detailed_logs == f"orbctl logs {vm_name} --all"
+
+        # Get VM info for status
+        vm_info = build_vm_info_command(vm_name)
+        assert vm_info == f"orbctl info {vm_name} --format json"
+
+    def test_monitoring_workflow(self):
+        """Test commands for VM monitoring workflow."""
+        vms = ["web-1", "web-2", "db-1"]
+
+        for vm_name in vms:
+            # Check status
+            info_cmd = build_vm_info_command(vm_name)
+            assert "orbctl info" in info_cmd
+            assert vm_name in info_cmd
+
+            # Check logs if issues
+            logs_cmd = build_vm_logs_command(vm_name)
+            assert "orbctl logs" in logs_cmd
+            assert vm_name in logs_cmd
+
+    def test_troubleshooting_workflow(self):
+        """Test commands for troubleshooting workflow."""
+        vm_name = "failing-vm"
+
+        # Step 1: Check VM info/status
+        info = build_vm_info_command(vm_name)
+        assert f"orbctl info {vm_name}" in info
+
+        # Step 2: Get basic logs
+        logs = build_vm_logs_command(vm_name)
+        assert logs == f"orbctl logs {vm_name}"
+
+        # Step 3: Get detailed logs if needed
+        detailed = build_vm_logs_command(vm_name, all_logs=True)
+        assert detailed == f"orbctl logs {vm_name} --all"
+
+        # Step 4: Restart if needed
+        restart = build_vm_restart_command(vm_name)
+        assert restart == f"orbctl restart {vm_name}"

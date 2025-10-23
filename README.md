@@ -4,7 +4,9 @@ A PyInfra connector for managing OrbStack VMs and containers with native integra
 
 ## Overview
 
-The PyInfra OrbStack Connector provides seamless integration between PyInfra and OrbStack, allowing you to manage VMs and containers using PyInfra's declarative infrastructure automation framework.
+The PyInfra OrbStack Connector provides seamless integration between PyInfra
+and OrbStack, allowing you to manage VMs and containers using PyInfra's
+declarative infrastructure automation framework.
 
 ## Features
 
@@ -240,6 +242,7 @@ vm_username_set("db-server", "postgres")
   - These are shared resources, not per-VM limits
 
 - **Per-VM Settings**: Only `machine.<vm-name>.username` is per-VM:
+
   ```python
   # This is the ONLY per-VM configuration available
   vm_username_set("my-vm", "ubuntu")
@@ -255,6 +258,53 @@ vm_username_set("db-server", "postgres")
   - `network.https` - Enable HTTPS support
 
 - **Effect of Changes**: Some configuration changes may require restarting OrbStack to take effect
+
+### Logging and Diagnostics Operations (Phase 3C)
+
+```python
+from pyinfra_orbstack.operations.vm import (
+    vm_logs, vm_status_detailed
+)
+
+# Get VM system logs
+logs = vm_logs()
+print(logs)
+
+# Get detailed logs including debug information
+detailed_logs = vm_logs(all_logs=True)
+print(detailed_logs)
+
+# Get comprehensive VM status information
+status = vm_status_detailed()
+print(f"VM State: {status.get('state')}")
+print(f"VM IP: {status.get('ip4')}")
+print(f"VM Image: {status.get('image')}")
+```
+
+**Important Notes about Logging and Diagnostics:**
+
+- **VM System Logs**: `vm_logs()` retrieves OrbStack's unified logs for the VM
+  - These are OrbStack-level logs (VM startup, system errors, OrbStack events)
+  - NOT logs from services running inside the VM
+  - Use `all_logs=True` for detailed debugging information
+
+- **In-VM Logs**: To get logs from services inside the VM, use standard PyInfra operations:
+
+  ```python
+  from pyinfra.operations import server
+
+  # Get logs from a service inside the VM
+  server.shell(
+      name="Get nginx logs",
+      commands=["journalctl -u nginx -n 50"],
+  )
+  ```
+
+- **Status Monitoring**: `vm_status_detailed()` provides comprehensive information:
+  - Running state (running, stopped, etc.)
+  - Network configuration (IP addresses)
+  - Resource information
+  - Image details
 
 ## Connector Features
 
