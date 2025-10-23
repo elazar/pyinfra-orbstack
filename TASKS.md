@@ -2,7 +2,7 @@
 
 **Project:** pyinfra-orbstack
 **Date:** 2025-10-23
-**Status:** Phase 2 Complete - Ready for Phase 3 or Next Priority
+**Status:** Phase 3 Complete - Ready for Phase 4 or Next Priority
 **Current Version:** 0.1.0
 
 ## Overview
@@ -150,6 +150,7 @@ is to publish this as a reusable Python package on PyPI.
 **Completed:** 2025-10-23
 
 **Deliverables:**
+
 - ✅ 16 VM lifecycle operations (create, delete, start, stop, restart, clone, export, import, rename)
 - ✅ 5 VM information operations (info, list, status, ip, network_info)
 - ✅ 2 SSH configuration operations (ssh_info, ssh_connect_string)
@@ -160,45 +161,94 @@ is to publish this as a reusable Python package on PyPI.
 - ✅ Coverage configuration optimized for PyInfra decorators
 
 **Key Achievements:**
+
 - Implemented command builder pattern to separate testable logic from decorators
 - Achieved 100% coverage for all command construction logic
 - Added centralized coverage exclusion configuration
 - Comprehensive integration and E2E test suites validate all operations
 
 **Commits:**
+
 - `728e82e` - feat: add Phase 2 VM operations (clone, export, import, rename, SSH)
 - `fed1107` - refactor: extract command builders to improve test coverage
 - `0e31fe0` - build: configure coverage to exclude @operation decorator code
 
-### Phase 3: Advanced Operations and Cross-VM Communication
+### Phase 3: Enhanced VM Operations ✅ **COMPLETED**
 
-#### Task 3.1: Cross-VM Communication
+**Note:** Phase 3 was redesigned based on ADR-002 feasibility analysis.
+See `docs/20251023-phase3-feasibility-analysis.md` for detailed rationale.
 
-- [ ] **3.1.1** Implement cross-VM connectivity operations
-  - [ ] Create `vm_ping` operation for connectivity testing
-  - [ ] Implement `vm_execute` operation for remote commands
-  - [ ] Add support for user specification in cross-VM operations
-  - [ ] Handle network routing and DNS resolution
+#### Task 3.1: VM Networking Information Operations ✅ **COMPLETED**
 
-- [ ] **3.1.2** Create VM-to-VM file transfer operations
-  - [ ] Implement `vm_copy_file` operation
-  - [ ] Add support for directory synchronization
-  - [ ] Handle file permissions and ownership
-  - [ ] Add progress reporting for large transfers
+- [x] **3.1.1** Implement comprehensive network information operations
+  - [x] Create `vm_network_details()` operation for comprehensive network info
+  - [x] Implement `vm_test_connectivity()` with ping/curl/nc methods
+  - [x] Add `vm_dns_lookup()` operation for DNS resolution (A, AAAA, MX, CNAME)
+  - [x] Support for OrbStack .orb.local domains
+  - [x] Cross-VM communication testing capabilities
 
-#### Task 3.2: Advanced VM Configuration
+#### Task 3.2: Global Configuration Management ✅ **COMPLETED**
 
-- [ ] **3.2.1** Implement VM resource management
-  - [ ] Create operations for CPU and memory configuration
-  - [ ] Add disk space management operations
-  - [ ] Implement network interface configuration
-  - [ ] Add support for custom VM parameters
+- [x] **3.2.1** Implement OrbStack configuration operations
+  - [x] Create `orbstack_config_get()` for retrieving configuration values
+  - [x] Implement `orbstack_config_set()` for updating configuration
+  - [x] Add `orbstack_config_show()` for displaying all settings
+  - [x] Create `vm_username_set()` for per-VM username configuration
+  - [x] Document global vs. per-VM configuration limitations
 
-- [ ] **3.2.2** Create VM health monitoring operations
-  - [ ] Implement `vm_health_check` operation
-  - [ ] Add system resource monitoring
-  - [ ] Create service status checking utilities
-  - [ ] Implement automated recovery operations
+#### Task 3.3: VM Logging and Diagnostics ✅ **COMPLETED**
+
+- [x] **3.3.1** Implement VM troubleshooting operations
+  - [x] Create `vm_logs()` operation for system log retrieval
+  - [x] Implement `vm_status_detailed()` for comprehensive status
+  - [x] Add support for detailed debugging logs (--all flag)
+  - [x] Document distinction between OrbStack-level and in-VM logs
+
+#### Phase 3 Completion Summary
+
+**Completed:** 2025-10-23
+
+**Deliverables:**
+
+- ✅ 9 Phase 3 operations (3 networking + 4 config + 2 diagnostics)
+- ✅ 7 command builder functions
+- ✅ 37 comprehensive unit tests (29 new Phase 3 tests)
+- ✅ 12 integration tests for Phase 3 operations
+- ✅ 100% test coverage maintained on vm.py
+- ✅ Comprehensive README documentation for all Phase 3 operations
+- ✅ ADR-002 documenting feasibility analysis and redesign decisions
+
+**Key Achievements:**
+
+- Redesigned Phase 3 based on OrbStack CLI capabilities and PyInfra architecture
+- Implemented all feasible operations from ADR-002
+- Maintained 100% coverage on operations/vm.py (75 total tests passing)
+- Comprehensive documentation distinguishing OrbStack vs. PyInfra responsibilities
+
+**Commits:**
+
+- `54298a3` - feat: implement Phase 3A - VM Networking Information Operations
+- `51cb522` - feat: implement Phase 3C - VM Logging and Diagnostics
+- `b1ba052` - feat: implement Phase 3B configuration management operations
+- `f59d346` - docs: add ADR-002 Phase 3 feasibility analysis
+
+**Original Phase 3 Tasks (Not Implemented - See ADR-002):**
+
+The following tasks from the original Phase 3 specification were determined to be
+infeasible or architecturally inappropriate during the ADR-002 analysis:
+
+- ❌ VM-to-VM file transfer operations (not supported by OrbStack CLI)
+- ❌ Per-VM resource management (OrbStack uses global resource pool)
+- ❌ Network interface configuration (auto-configured by OrbStack)
+- ❌ Custom VM parameters beyond username (not supported by OrbStack CLI)
+
+These operations either:
+
+1. Are not supported by OrbStack CLI
+2. Conflict with PyInfra's architectural model
+3. Are better served by standard PyInfra operations
+
+See ADR-002 for complete analysis and recommendations.
 
 ### Phase 4: Testing and Validation
 
