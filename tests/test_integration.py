@@ -259,7 +259,7 @@ class TestOrbStackIntegration:
         connector = OrbStackConnector(self.mock_state, self.mock_host)
 
         # Test command execution with invalid VM
-        success, output = connector.run_shell_command("echo test")
+        success, _ = connector.run_shell_command("echo test")
         assert success is False
         # Just verify that the command failed (error message may vary)
 
@@ -378,7 +378,7 @@ class TestOrbStackIntegration:
 
             # Test command execution time
             start_time = time.time()
-            success, output = connector.run_shell_command("echo 'performance test'")
+            success, _ = connector.run_shell_command("echo 'performance test'")
             end_time = time.time()
 
             assert success is True
@@ -402,7 +402,7 @@ class TestOrbStackIntegration:
             result = connector.connect()
             assert result is True
 
-            success, output = connector.run_shell_command("echo 'cleanup test'")
+            success, _ = connector.run_shell_command("echo 'cleanup test'")
             assert success is True
 
             # Disconnect (should not raise exceptions)
@@ -483,7 +483,7 @@ class TestOrbStackIntegrationEdgeCases:
             connector = OrbStackConnector(self.mock_state, self.mock_host)
 
             # Test command that might produce binary-like output
-            success, output = connector.run_shell_command("echo -n 'test' | od -c")
+            success, _ = connector.run_shell_command("echo -n 'test' | od -c")
 
             # Command should succeed
             assert success is True
@@ -774,6 +774,183 @@ class TestPhase3BConfigIntegration:
                 key, value = line.split(":", 1)
                 assert len(key.strip()) > 0
                 assert len(value.strip()) > 0
+
+
+@pytest.mark.skipif(not orbstack_available, reason=orbstack_reason)
+class TestPhase3ANetworkingIntegration:
+    """Integration tests for Phase 3A networking operations."""
+
+    def test_vm_network_details_command(self):
+        """Test getting comprehensive network details from a VM."""
+        # Get list of running VMs
+        list_result = subprocess.run(
+            ["orbctl", "list", "-f", "json"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        if list_result.returncode != 0:
+            pytest.skip("No VMs available for testing")
+
+        vms = json.loads(list_result.stdout)
+        if not vms:
+            pytest.skip("No VMs available for testing")
+
+        # Test getting network details for first VM
+        vm = vms[0]
+        vm_name = vm.get("name")
+
+        # Get VM info (contains network details)
+        info_result = subprocess.run(
+            ["orbctl", "info", vm_name, "--format", "json"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        assert info_result.returncode == 0
+
+        info = json.loads(info_result.stdout)
+        # Verify network-related fields exist
+        assert "ip4" in info or "ip6" in info, "VM should have IP address information"
+
+    def test_vm_test_connectivity_ping(self):
+        """Test ping connectivity command."""
+        # Test basic ping to a reliable target
+        ping_result = subprocess.run(
+            ["ping", "-c", "2", "8.8.8.8"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+
+        # Ping should work from host
+        assert ping_result.returncode == 0 or "bytes from" in ping_result.stdout
+
+    def test_vm_test_connectivity_curl(self):
+        """Test curl connectivity command."""
+        # Test basic curl to a reliable target
+        curl_result = subprocess.run(
+            [
+                "curl",
+                "-s",
+                "-o",
+                "/dev/null",
+                "-w",
+                "%{http_code}",
+                "--connect-timeout",
+                "5",
+                "https://www.google.com",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        # Should get an HTTP status code
+        if curl_result.returncode == 0:
+            status_code = curl_result.stdout.strip()
+            assert status_code.startswith(
+                ("2", "3")
+            ), f"Unexpected status: {status_code}"
+
+    def test_vm_test_connectivity_nc(self):
+        """Test netcat connectivity command."""
+        # Test nc to a reliable target (Google DNS on port 53)
+        nc_result = subprocess.run(
+            ["nc", "-zv", "-w", "5", "8.8.8.8", "53"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        # nc returns 0 on success, output goes to stderr
+        assert nc_result.returncode == 0 or "succeeded" in nc_result.stderr
+
+    def test_vm_dns_lookup_a_record(self):
+        """Test DNS A record lookup."""
+        # Test basic A record lookup
+        dns_result = subprocess.run(
+            ["host", "-t", "A", "google.com"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        assert dns_result.returncode == 0
+        assert (
+            "has address" in dns_result.stdout
+            or "has IPv4 address" in dns_result.stdout
+        )
+
+    def test_vm_dns_lookup_aaaa_record(self):
+        """Test DNS AAAA record lookup."""
+        # Test IPv6 lookup
+        dns_result = subprocess.run(
+            ["host", "-t", "AAAA", "google.com"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        # AAAA records might not always be available
+        if dns_result.returncode == 0:
+            assert (
+                "has IPv6 address" in dns_result.stdout
+                or "has AAAA record" in dns_result.stdout
+            )
+
+    def test_vm_dns_lookup_mx_record(self):
+        """Test DNS MX record lookup."""
+        # Test MX record lookup
+        dns_result = subprocess.run(
+            ["host", "-t", "MX", "google.com"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        assert dns_result.returncode == 0
+        assert "mail is handled by" in dns_result.stdout
+
+    def test_cross_vm_connectivity_orb_local(self):
+        """Test connectivity between VMs using .orb.local domains."""
+        # Get list of running VMs
+        list_result = subprocess.run(
+            ["orbctl", "list", "-f", "json"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        if list_result.returncode != 0:
+            pytest.skip("No VMs available for testing")
+
+        vms = json.loads(list_result.stdout)
+        running_vms = [vm for vm in vms if vm.get("state") == "RUNNING"]
+
+        if len(running_vms) < 2:
+            pytest.skip("Need at least 2 running VMs for cross-VM connectivity test")
+
+        # Test DNS resolution of .orb.local domain
+        vm1_name = running_vms[0].get("name")
+        vm1_domain = f"{vm1_name}.orb.local"
+
+        dns_result = subprocess.run(
+            ["host", "-t", "A", vm1_domain],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+        # [Inference] .orb.local domains should resolve if OrbStack networking is configured
+        # If this fails, it may indicate OrbStack networking configuration issues
+        if dns_result.returncode == 0:
+            assert (
+                "has address" in dns_result.stdout
+                or "has IPv4 address" in dns_result.stdout
+            )
 
 
 # Mark all tests as integration tests

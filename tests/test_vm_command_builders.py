@@ -13,15 +13,18 @@ from pyinfra_orbstack.operations.vm import (
     build_vm_clone_command,
     build_vm_create_command,
     build_vm_delete_command,
+    build_vm_dns_lookup_command,
     build_vm_export_command,
     build_vm_import_command,
     build_vm_info_command,
     build_vm_list_command,
     build_vm_logs_command,
+    build_vm_network_details_command,
     build_vm_rename_command,
     build_vm_restart_command,
     build_vm_start_command,
     build_vm_stop_command,
+    build_vm_test_connectivity_command,
     build_vm_username_set_command,
 )
 
@@ -562,3 +565,185 @@ class TestLogsWorkflows:
         # Step 4: Restart if needed
         restart = build_vm_restart_command(vm_name)
         assert restart == f"orbctl restart {vm_name}"
+
+
+# ============================================================================
+# Phase 3A: VM Networking Information Command Builder Tests
+# ============================================================================
+
+
+class TestVMNetworkDetailsCommandBuilder:
+    """Test vm_network_details command builder."""
+
+    def test_builds_network_details_command(self):
+        """Test basic network details command construction."""
+        vm_name = "web-vm"
+        cmd = build_vm_network_details_command(vm_name)
+
+        assert cmd == "orbctl info web-vm --format json"
+
+    def test_different_vm_names(self):
+        """Test network details command with various VM names."""
+        test_cases = [
+            ("simple", "orbctl info simple --format json"),
+            ("with-dashes", "orbctl info with-dashes --format json"),
+            ("vm_123", "orbctl info vm_123 --format json"),
+        ]
+
+        for vm_name, expected in test_cases:
+            cmd = build_vm_network_details_command(vm_name)
+            assert cmd == expected
+
+
+class TestVMTestConnectivityCommandBuilder:
+    """Test vm_test_connectivity command builder."""
+
+    def test_ping_method_default(self):
+        """Test ping connectivity command with default count."""
+        cmd = build_vm_test_connectivity_command("other-vm.orb.local")
+        assert cmd == "ping -c 3 other-vm.orb.local"
+
+    def test_ping_method_custom_count(self):
+        """Test ping connectivity command with custom count."""
+        cmd = build_vm_test_connectivity_command(
+            "other-vm.orb.local", method="ping", count=5
+        )
+        assert cmd == "ping -c 5 other-vm.orb.local"
+
+    def test_curl_method(self):
+        """Test curl connectivity command."""
+        cmd = build_vm_test_connectivity_command(
+            "http://other-vm.orb.local:8080", method="curl"
+        )
+        assert cmd == (
+            "curl -s -o /dev/null -w '%{http_code}' "
+            "--connect-timeout 5 http://other-vm.orb.local:8080"
+        )
+
+    def test_nc_method_with_port(self):
+        """Test netcat connectivity command with explicit port."""
+        cmd = build_vm_test_connectivity_command("other-vm.orb.local:3306", method="nc")
+        assert cmd == "nc -zv -w 5 other-vm.orb.local 3306"
+
+    def test_nc_method_default_port(self):
+        """Test netcat connectivity command with default port (22)."""
+        cmd = build_vm_test_connectivity_command("other-vm.orb.local", method="nc")
+        assert cmd == "nc -zv -w 5 other-vm.orb.local 22"
+
+    def test_invalid_method_raises_error(self):
+        """Test that invalid connectivity method raises ValueError."""
+        import pytest
+
+        with pytest.raises(ValueError, match="Unsupported connectivity test method"):
+            build_vm_test_connectivity_command("target", method="invalid")
+
+
+class TestVMDNSLookupCommandBuilder:
+    """Test vm_dns_lookup command builder."""
+
+    def test_default_a_record_lookup(self):
+        """Test DNS lookup with default A record."""
+        cmd = build_vm_dns_lookup_command("example.com")
+        assert cmd == "host -t A example.com"
+
+    def test_orb_local_domain_lookup(self):
+        """Test DNS lookup for .orb.local domain."""
+        cmd = build_vm_dns_lookup_command("other-vm.orb.local")
+        assert cmd == "host -t A other-vm.orb.local"
+
+    def test_aaaa_record_lookup(self):
+        """Test DNS lookup for AAAA (IPv6) record."""
+        cmd = build_vm_dns_lookup_command("example.com", lookup_type="AAAA")
+        assert cmd == "host -t AAAA example.com"
+
+    def test_mx_record_lookup(self):
+        """Test DNS lookup for MX record."""
+        cmd = build_vm_dns_lookup_command("example.com", lookup_type="MX")
+        assert cmd == "host -t MX example.com"
+
+    def test_cname_record_lookup(self):
+        """Test DNS lookup for CNAME record."""
+        cmd = build_vm_dns_lookup_command("www.example.com", lookup_type="CNAME")
+        assert cmd == "host -t CNAME www.example.com"
+
+
+class TestNetworkingCommandBuilderEdgeCases:
+    """Test edge cases for networking command builders."""
+
+    def test_network_details_empty_vm_name(self):
+        """Test network details with empty VM name still builds command."""
+        cmd = build_vm_network_details_command("")
+        assert cmd == "orbctl info  --format json"
+
+    def test_connectivity_with_ip_address(self):
+        """Test connectivity test with IP address instead of hostname."""
+        cmd = build_vm_test_connectivity_command("192.168.1.1")
+        assert cmd == "ping -c 3 192.168.1.1"
+
+    def test_connectivity_curl_with_https(self):
+        """Test curl connectivity with HTTPS URL."""
+        cmd = build_vm_test_connectivity_command("https://example.com", method="curl")
+        assert "https://example.com" in cmd
+        assert "curl" in cmd
+
+    def test_dns_lookup_subdomain(self):
+        """Test DNS lookup for subdomain."""
+        cmd = build_vm_dns_lookup_command("api.staging.example.com")
+        assert cmd == "host -t A api.staging.example.com"
+
+    def test_connectivity_nc_ipv6(self):
+        """Test netcat with IPv6 address and port."""
+        cmd = build_vm_test_connectivity_command("[::1]:8080", method="nc")
+        assert cmd == "nc -zv -w 5 [::1] 8080"
+
+
+class TestNetworkingWorkflows:
+    """Test common networking workflow scenarios."""
+
+    def test_cross_vm_communication_workflow(self):
+        """Test workflow for setting up cross-VM communication."""
+        source_vm = "frontend"
+        target_vm = "backend"
+
+        # Step 1: Get network details for both VMs
+        source_net = build_vm_network_details_command(source_vm)
+        target_net = build_vm_network_details_command(target_vm)
+        assert "orbctl info frontend" in source_net
+        assert "orbctl info backend" in target_net
+
+        # Step 2: Test basic connectivity
+        ping_cmd = build_vm_test_connectivity_command(
+            f"{target_vm}.orb.local", method="ping"
+        )
+        assert ping_cmd == f"ping -c 3 {target_vm}.orb.local"
+
+        # Step 3: Test service connectivity
+        http_cmd = build_vm_test_connectivity_command(
+            f"http://{target_vm}.orb.local:8080", method="curl"
+        )
+        assert f"{target_vm}.orb.local:8080" in http_cmd
+
+    def test_dns_troubleshooting_workflow(self):
+        """Test workflow for DNS troubleshooting."""
+        hostname = "service.orb.local"
+
+        # Step 1: Check A record
+        a_lookup = build_vm_dns_lookup_command(hostname, lookup_type="A")
+        assert a_lookup == f"host -t A {hostname}"
+
+        # Step 2: Check IPv6
+        aaaa_lookup = build_vm_dns_lookup_command(hostname, lookup_type="AAAA")
+        assert aaaa_lookup == f"host -t AAAA {hostname}"
+
+        # Step 3: Test connectivity once IP is known
+        ping_cmd = build_vm_test_connectivity_command(hostname)
+        assert ping_cmd == f"ping -c 3 {hostname}"
+
+    def test_port_connectivity_workflow(self):
+        """Test workflow for checking multiple ports."""
+        target = "db.orb.local"
+        ports = [22, 3306, 5432]
+
+        for port in ports:
+            cmd = build_vm_test_connectivity_command(f"{target}:{port}", method="nc")
+            assert f"nc -zv -w 5 {target} {port}" == cmd

@@ -174,6 +174,67 @@ def build_vm_logs_command(vm_name: str, all_logs: bool = False) -> str:
     return cmd
 
 
+# Phase 3A: VM Networking Information Command Builders
+
+
+def build_vm_network_details_command(vm_name: str) -> str:
+    """
+    Build the command to get comprehensive network information for a VM.
+
+    Args:
+        vm_name: VM name
+
+    Returns:
+        str: The complete orbctl info command (returns network details)
+    """
+    return f"orbctl info {vm_name} --format json"
+
+
+def build_vm_test_connectivity_command(
+    target: str, method: str = "ping", count: int = 3
+) -> str:
+    """
+    Build the command to test network connectivity.
+
+    Args:
+        target: Target hostname, IP, or machine-name.orb.local
+        method: Test method (ping, curl, nc)
+        count: Number of ping attempts (for ping method)
+
+    Returns:
+        str: The complete connectivity test command
+    """
+    if method == "ping":
+        return f"ping -c {count} {target}"
+    elif method == "curl":
+        return f"curl -s -o /dev/null -w '%{{http_code}}' --connect-timeout 5 {target}"
+    elif method == "nc":
+        # Extract port if provided (e.g., "host:port"), default to 22
+        if ":" in target:
+            host, port = target.rsplit(":", 1)
+            return f"nc -zv -w 5 {host} {port}"
+        return f"nc -zv -w 5 {target} 22"
+    else:
+        raise ValueError(f"Unsupported connectivity test method: {method}")
+
+
+def build_vm_dns_lookup_command(hostname: str, lookup_type: str = "A") -> str:
+    """
+    Build the command to perform DNS lookup.
+
+    Args:
+        hostname: Hostname to resolve
+        lookup_type: DNS record type (A, AAAA, CNAME, MX, etc.)
+
+    Returns:
+        str: The complete DNS lookup command using 'host'
+    """
+    if lookup_type == "A":
+        return f"host -t A {hostname}"
+    else:
+        return f"host -t {lookup_type} {hostname}"
+
+
 # PyInfra Operations (use command builders)
 
 
@@ -416,6 +477,90 @@ def ssh_connect_string(machine: Optional[str] = None):
         return "Error: No machine specified"
 
     yield build_ssh_info_command(machine)
+
+
+# Phase 3A: VM Networking Information Operations
+
+
+@operation()
+def vm_network_details():
+    """
+    Get comprehensive network information for current VM.
+
+    Returns:
+        dict: Network configuration including:
+            - IP addresses (IPv4, IPv6)
+            - .orb.local domain name
+            - Subnet information
+            - Gateway address
+
+    Example:
+        >>> vm_network_details()
+        {
+            "ip4": "198.19.249.2",
+            "ip6": "fd39:4e14:6769:1::2",
+            "hostname": "my-vm.orb.local"
+        }
+    """
+    vm_name = host.data.get("vm_name")
+    if not vm_name:
+        return {}
+
+    yield build_vm_network_details_command(vm_name)
+
+
+@operation()
+def vm_test_connectivity(target: str, method: str = "ping", count: int = 3):
+    """
+    Test network connectivity from current VM to target.
+
+    Uses standard Linux networking tools (ping, curl, nc) to test connectivity.
+    Supports OrbStack's .orb.local domain names for inter-VM communication.
+
+    Args:
+        target: Target hostname, IP, or machine-name.orb.local
+        method: Test method - "ping", "curl", or "nc" (default: "ping")
+        count: Number of ping attempts for ping method (default: 3)
+
+    Returns:
+        str: Command output showing connectivity status
+
+    Example:
+        >>> vm_test_connectivity("other-vm.orb.local")
+        "PING other-vm.orb.local (198.19.249.3): 56 data bytes..."
+
+        >>> vm_test_connectivity("http://other-vm.orb.local:8080", method="curl")
+        "200"
+
+        >>> vm_test_connectivity("other-vm.orb.local:22", method="nc")
+        "Connection to other-vm.orb.local 22 port [tcp/ssh] succeeded!"
+    """
+    yield build_vm_test_connectivity_command(target, method, count)
+
+
+@operation()
+def vm_dns_lookup(hostname: str, lookup_type: str = "A"):
+    """
+    Resolve hostname from current VM.
+
+    Performs DNS lookup using the 'host' command. Supports OrbStack's
+    .orb.local domain names and standard DNS lookups.
+
+    Args:
+        hostname: Hostname to resolve (e.g., "example.com" or "vm-name.orb.local")
+        lookup_type: DNS record type - A, AAAA, CNAME, MX, etc. (default: "A")
+
+    Returns:
+        str: DNS lookup results
+
+    Example:
+        >>> vm_dns_lookup("other-vm.orb.local")
+        "other-vm.orb.local has address 198.19.249.3"
+
+        >>> vm_dns_lookup("example.com", lookup_type="AAAA")
+        "example.com has IPv6 address 2606:2800:220:1:248:1893:25c8:1946"
+    """
+    yield build_vm_dns_lookup_command(hostname, lookup_type)
 
 
 # Phase 3B: Configuration Management Operations

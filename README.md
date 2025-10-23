@@ -306,6 +306,94 @@ print(f"VM Image: {status.get('image')}")
   - Resource information
   - Image details
 
+### VM Networking Information Operations (Phase 3A)
+
+```python
+from pyinfra_orbstack.operations.vm import (
+    vm_network_details, vm_test_connectivity, vm_dns_lookup
+)
+
+# Get comprehensive network information for current VM
+network_info = vm_network_details()
+print(f"IPv4: {network_info.get('ip4')}")
+print(f"IPv6: {network_info.get('ip6')}")
+print(f"Hostname: {network_info.get('hostname')}")
+
+# Test connectivity to another VM using .orb.local domain
+# Ping test (default)
+connectivity_result = vm_test_connectivity("backend-vm.orb.local")
+print(connectivity_result)
+
+# Test with custom ping count
+connectivity_result = vm_test_connectivity(
+    "backend-vm.orb.local", method="ping", count=5
+)
+
+# Test HTTP endpoint availability
+http_status = vm_test_connectivity(
+    "http://backend-vm.orb.local:8080", method="curl"
+)
+print(f"HTTP Status: {http_status}")
+
+# Test specific port connectivity with netcat
+port_check = vm_test_connectivity(
+    "database-vm.orb.local:5432", method="nc"
+)
+
+# Perform DNS lookups
+# A record (IPv4) - default
+ip_address = vm_dns_lookup("backend-vm.orb.local")
+print(f"Resolved IP: {ip_address}")
+
+# AAAA record (IPv6)
+ipv6_address = vm_dns_lookup("backend-vm.orb.local", lookup_type="AAAA")
+
+# MX record
+mx_records = vm_dns_lookup("example.com", lookup_type="MX")
+
+# External DNS lookup
+external_ip = vm_dns_lookup("google.com")
+```
+
+**Important Notes about Networking Operations:**
+
+- **OrbStack .orb.local Domains**: VMs automatically get `.orb.local` domain names
+  - Format: `vm-name.orb.local`
+  - Enables easy cross-VM communication without IP addresses
+  - Works for all connectivity tests (ping, curl, nc)
+
+- **Connectivity Test Methods**:
+  - `ping`: Basic ICMP connectivity (default, requires ICMP enabled)
+  - `curl`: HTTP/HTTPS endpoint testing (returns HTTP status code)
+  - `nc` (netcat): Port-specific connectivity checks
+
+- **DNS Lookup Types**:
+  - `A`: IPv4 address (default)
+  - `AAAA`: IPv6 address
+  - `CNAME`: Canonical name
+  - `MX`: Mail exchange records
+  - Other standard DNS record types supported
+
+- **Cross-VM Communication**:
+
+  ```python
+  # Example: Test if backend VM is accessible
+  from pyinfra.operations import server
+  from pyinfra_orbstack.operations.vm import vm_test_connectivity
+
+  # Test basic connectivity
+  vm_test_connectivity("backend.orb.local", method="ping")
+
+  # Test service availability
+  vm_test_connectivity("http://backend.orb.local:8080", method="curl")
+
+  # Then configure services using standard PyInfra operations
+  server.shell(
+      name="Configure app to use backend",
+      commands=["echo 'BACKEND_URL=http://backend.orb.local:8080' >> /etc/app.conf"],
+  )
+  ```
+
 ## Connector Features
 
 ### Automatic VM Discovery
