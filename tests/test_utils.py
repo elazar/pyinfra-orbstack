@@ -180,9 +180,30 @@ def delete_vm_with_retry(
     Returns:
         True if successful, False otherwise
     """
+    # First check if VM exists
+    check_result = subprocess.run(
+        ["orbctl", "list", "--format", "json"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+
+    if check_result.returncode == 0:
+        import json
+
+        try:
+            vms = json.loads(check_result.stdout)
+            vm_exists = any(vm.get("name") == vm_name for vm in vms)
+            if not vm_exists:
+                # VM doesn't exist, nothing to delete
+                return True
+        except (json.JSONDecodeError, KeyError):
+            # If we can't parse, proceed with deletion attempt
+            pass
+
     cmd = ["orbctl", "delete", vm_name]
     if force:
-        cmd.append("-")
+        cmd.append("-f")
 
     return_code, stdout, stderr = execute_orbctl_with_retry(
         cmd,
@@ -228,7 +249,7 @@ def stop_vm_with_retry(vm_name: str, force: bool = False, max_retries: int = 2) 
     """
     cmd = ["orbctl", "stop", vm_name]
     if force:
-        cmd.append("-")
+        cmd.append("-f")
 
     return_code, stdout, stderr = execute_orbctl_with_retry(
         cmd, max_retries=max_retries, timeout=60, operation_name=f"VM stop ({vm_name})"
