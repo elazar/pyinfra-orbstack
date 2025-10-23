@@ -27,6 +27,7 @@ Our ADRs follow the [Michael Nygard template](https://github.com/joelparkerhende
 ### Current ADRs
 
 - [ADR-001: Package Namespace Structure](20250116-package-namespace-structure.md) - Decision on using `pyinfra_orbstack` vs `pyinfra.orbstack` namespace
+- [ADR-002: Phase 3 Feasibility Analysis and Implementation Strategy](20251023-phase3-feasibility-analysis.md) - Analysis of Phase 3 requirements and redesign for Advanced VM Operations
 
 ### Creating New ADRs
 
