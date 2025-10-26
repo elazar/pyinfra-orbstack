@@ -27,7 +27,7 @@ class TestPyInfraOperationsE2E(TestCase):
     def tearDown(self):
         """Clean up test environment."""
         # Clean up test VM
-        delete_vm_with_retry(self.test_vm_name, force=True, max_retries=1)
+        delete_vm_with_retry(self.test_vm_name, force=True)
 
         # Clean up temporary directory
         if os.path.exists(self.temp_dir):
@@ -79,7 +79,7 @@ host_data = [
     def test_vm_create_operation_execution(self):
         """Test that vm_create operation actually executes."""
         # First, ensure VM doesn't exist
-        delete_vm_with_retry(self.test_vm_name, force=True, max_retries=1)
+        delete_vm_with_retry(self.test_vm_name, force=True)
 
         # Create deployment file that uses vm_create operation
         deploy_content = """
@@ -119,7 +119,7 @@ vm_create(
     def test_vm_create_with_parameters_operation_execution(self):
         """Test vm_create operation with all parameters."""
         vm_name = f"{self.test_vm_name}-params"
-        delete_vm_with_retry(vm_name, force=True, max_retries=1)
+        delete_vm_with_retry(vm_name, force=True)
 
         deploy_content = """
 from pyinfra_orbstack.operations.vm import vm_create
@@ -144,12 +144,12 @@ vm_create(
         ), "PyInfra should have loaded the deployment"
 
         # Clean up
-        delete_vm_with_retry(vm_name, force=True, max_retries=1)
+        delete_vm_with_retry(vm_name, force=True)
 
     def test_vm_delete_operation_execution(self):
         """Test that vm_delete operation actually executes."""
         # First create a VM to delete
-        if create_vm_with_retry(self.test_image, self.test_vm_name, max_retries=2):
+        if create_vm_with_retry(self.test_image, self.test_vm_name):
             deploy_content = """
 from pyinfra_orbstack.operations.vm import vm_delete
 
@@ -172,7 +172,7 @@ vm_delete(
     def test_vm_lifecycle_operations_execution(self):
         """Test complete VM lifecycle operations."""
         # Create VM first
-        if create_vm_with_retry(self.test_image, self.test_vm_name, max_retries=2):
+        if create_vm_with_retry(self.test_image, self.test_vm_name):
             deploy_content = """
 from pyinfra_orbstack.operations.vm import vm_start, vm_stop, vm_restart
 
@@ -194,7 +194,7 @@ vm_restart(name="{self.test_vm_name}")
     def test_vm_info_operation_execution(self):
         """Test vm_info operation execution."""
         # Create VM first
-        if create_vm_with_retry(self.test_image, self.test_vm_name, max_retries=2):
+        if create_vm_with_retry(self.test_image, self.test_vm_name):
             deploy_content = """
 from pyinfra_orbstack.operations.vm import vm_info
 
@@ -234,7 +234,7 @@ vms = vm_list()
     def test_vm_create_present_false_operation_execution(self):
         """Test vm_create with present=False (should delete VM)."""
         # Create VM first
-        if create_vm_with_retry(self.test_image, self.test_vm_name, max_retries=2):
+        if create_vm_with_retry(self.test_image, self.test_vm_name):
             deploy_content = """
 from pyinfra_orbstack.operations.vm import vm_create
 
@@ -258,7 +258,7 @@ vm_create(
     def test_vm_stop_with_force_operation_execution(self):
         """Test vm_stop operation with force parameter."""
         # Create and start VM first
-        if create_vm_with_retry(self.test_image, self.test_vm_name, max_retries=2):
+        if create_vm_with_retry(self.test_image, self.test_vm_name):
             subprocess.run(["orbctl", "start", self.test_vm_name], timeout=30)
             time.sleep(5)  # Wait for VM to start
 
