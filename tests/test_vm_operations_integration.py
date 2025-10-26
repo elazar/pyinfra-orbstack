@@ -14,6 +14,7 @@ from unittest import TestCase
 import pytest
 
 from tests.test_utils import (
+    create_test_vm,
     create_vm_with_retry,
     delete_vm_with_retry,
     start_vm_with_retry,
@@ -73,7 +74,7 @@ class TestVMOperationsIntegration(TestCase):
             f"{self.test_vm_name}-arm64",
             f"{self.test_vm_name}-user",
         ]:
-            delete_vm_with_retry(vm_name, force=True, max_retries=1)
+            delete_vm_with_retry(vm_name, force=True)
 
     def test_vm_list_integration(self):
         """Test VM list operation with real OrbStack."""
@@ -97,17 +98,10 @@ class TestVMOperationsIntegration(TestCase):
 
     def test_vm_create_and_delete_integration(self):
         """Test VM creation and deletion with real OrbStack."""
-        # Test VM creation
-        create_result = subprocess.run(
-            ["orbctl", "create", self.test_image, self.test_vm_name],
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-
-        assert (
-            create_result.returncode == 0
-        ), f"VM creation failed: {create_result.stderr}"
+        # Test VM creation using resilient utility
+        assert create_vm_with_retry(
+            self.test_image, self.test_vm_name
+        ), f"VM creation failed for {self.test_vm_name}"
 
         # Wait a moment for VM to be created
         time.sleep(2)
@@ -521,36 +515,27 @@ class TestVMOperationsEdgeCasesIntegration:
 
     def test_vm_special_characters_integration(self):
         """Test VM operations with special characters in names."""
-        # Test with special characters in VM name
-        special_vm_name = "test-vm-with-special-chars-123"
+        # Create VM using resilient function with automatic cleanup
+        vm_name = create_test_vm()
 
-        create_result = subprocess.run(
-            ["orbctl", "create", "ubuntu:22.04", special_vm_name],
+        # Verify VM was created and has expected name format
+        # (includes hyphens, which are "special" characters for VM names)
+        list_result = subprocess.run(
+            ["orbctl", "list", "--format", "json"],
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=10,
         )
 
-        if create_result.returncode == 0:
-            # Verify VM was created
-            list_result = subprocess.run(
-                ["orbctl", "list", "--format", "json"],
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
+        assert list_result.returncode == 0, "Failed to list VMs"
+        vms = json.loads(list_result.stdout)
+        vm_exists = any(vm.get("name") == vm_name for vm in vms)
+        assert vm_exists, f"VM {vm_name} not found in list"
 
-            if list_result.returncode == 0:
-                vms = json.loads(list_result.stdout)
-                vm_exists = any(vm.get("name") == special_vm_name for vm in vms)
-                assert vm_exists, "VM with special characters not found"
+        # Verify VM name contains special characters (hyphens)
+        assert "-" in vm_name, "VM name should contain hyphens"
 
-            # Clean up
-            subprocess.run(
-                ["orbctl", "delete", "--force", special_vm_name],
-                capture_output=True,
-                timeout=30,
-            )
+        # VM cleanup handled automatically by create_test_vm fixture
 
     def test_vm_empty_name_integration(self):
         """Test VM operations with empty name."""

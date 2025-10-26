@@ -14,6 +14,8 @@ import time
 
 import pytest
 
+from tests.test_utils import create_vm_with_retry
+
 
 def check_orbstack_available():
     """Check if OrbStack is available and running."""
@@ -199,16 +201,10 @@ inventory.add_host("@local/localhost", {{
 
     def test_vm_info_deployment(self):
         """Test VM info operations through PyInfra deployment."""
-        # First create a VM using orbctl
-        create_result = subprocess.run(
-            ["orbctl", "create", self.test_image, self.test_vm_name],
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-        assert (
-            create_result.returncode == 0
-        ), f"VM creation failed: {create_result.stderr}"
+        # First create a VM using resilient utility
+        assert create_vm_with_retry(
+            self.test_image, self.test_vm_name
+        ), f"VM creation failed for {self.test_vm_name}"
 
         # Wait for VM to be ready
         time.sleep(5)
@@ -335,16 +331,10 @@ inventory.add_host("@local/localhost", {{
 
     def test_vm_list_deployment(self):
         """Test VM list operation through PyInfra deployment."""
-        # Create a test VM first
-        create_result = subprocess.run(
-            ["orbctl", "create", self.test_image, self.test_vm_name],
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-        assert (
-            create_result.returncode == 0
-        ), f"VM creation failed: {create_result.stderr}"
+        # Create a test VM first using resilient utility
+        assert create_vm_with_retry(
+            self.test_image, self.test_vm_name
+        ), f"VM creation failed for {self.test_vm_name}"
 
         # Create deployment file that uses vm_list operation
         deploy_content = """

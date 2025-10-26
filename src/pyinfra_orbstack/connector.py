@@ -122,7 +122,9 @@ class OrbStackConnector(BaseConnector):
                     raise e
 
         # This should never be reached, but just in case
-        return subprocess.CompletedProcess(cmd, 1, "", "Max retries exceeded")
+        return subprocess.CompletedProcess(
+            cmd, 1, "", "Max retries exceeded"
+        )  # pragma: no cover
 
     @staticmethod
     def make_names_data(
