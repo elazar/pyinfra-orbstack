@@ -597,7 +597,7 @@ def vm_status_detailed():
 
 - `TASKS.md` - Project task plan (requires update)
 - `docs/20250116-package-namespace-structure.md` - Package organization patterns
-- `docs/testing-and-coverage-methodology.md` - Testing standards
+- `docs/20251021-testing-and-coverage-methodology.md` - Testing standards
 - `README.md` - User-facing documentation (requires Phase 3 updates)
 
 ## Changelog

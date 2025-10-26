@@ -156,10 +156,22 @@ uv run pre-commit run --all-files
 
 ## Testing Documentation
 
-- [Testing and Coverage Methodology](testing-and-coverage-methodology.md) - Comprehensive testing strategy and coverage standards
-- [Test Suite Refactoring Analysis](test-suite-refactoring-analysis.md) - Analysis of test redundancy and consolidation recommendations
-- [Test Implementation Analysis](test-implementation-analysis.md) - Details on test structure and implementation
-- [Coverage Gaps Analysis](coverage-gaps-analysis.md) - Analysis of code coverage and gaps
+- [Testing and Coverage Methodology](20251021-testing-and-coverage-methodology.md) - Comprehensive testing strategy and coverage standards
+- [Test Suite Refactoring Analysis](20251021-test-suite-refactoring-analysis.md) - Analysis of test redundancy and consolidation recommendations
+- [Test Implementation Analysis](20250817-test-implementation-analysis.md) - Details on test structure and implementation
+- [Running Tests](20251021-running-tests.md) - Guide to running tests with various options
+- [Test Timing Guide](20251025-test-timing-guide.md) - How to view test execution times and identify slow tests
+- [Live Test Monitoring](20251025-live-test-monitoring.md) - Real-time monitoring of test execution with live elapsed time updates
+- [Benchmark Guide](20251025-benchmark-guide.md) - Performance benchmarking and regression detection
+
+## System Performance and Troubleshooting
+
+- [OrbStack Timeout Analysis](20251025-orbstack-timeout-analysis.md) - Root cause analysis and
+  mitigation strategies for VM creation timeouts
+- [Process Analysis and Recommendations](20251025-process-analysis-recommendations.md) - Memory
+  optimization strategy and system resource management
+- [Test Results: Post Optimization](20251025-test-results-post-optimization.md) - Comprehensive
+  test suite results after memory optimization
 
 ## References
 

@@ -369,6 +369,6 @@ tests/
 
 ## References
 
-- [Testing and Coverage Methodology](testing-and-coverage-methodology.md)
-- [Test Implementation Analysis](test-implementation-analysis.md)
+- [Testing and Coverage Methodology](20251021-testing-and-coverage-methodology.md)
+- [Test Implementation Analysis](20250817-test-implementation-analysis.md)
 - [Coverage Gaps Analysis](coverage-gaps-analysis.md)
