@@ -2,42 +2,45 @@
 
 This directory contains project documentation and architectural decision records (ADRs).
 
+## Documentation Organization
+
+### Directory Structure and Standards
+
+- **`user-guide/`** - User-facing documentation (installation, usage, tutorials, troubleshooting)
+- **`dev-journal/`** - Development journal and historical analysis documents with date-stamped filenames (`YYYYMMDD-topic.md`)
+- **`adrs/`** - Architecture Decision Records (ADRs) documenting significant architectural decisions
+- **Root `docs/`** - Single-file documentation (this `README.md` file, standards)
+- **Additional subdirectories** - Topic-specific multi-file documentation as needed
+
 ## Architecture Decision Records (ADRs)
 
-Architecture Decision Records (ADRs) are documents that capture important architectural decisions made during the project's development. They provide context for why certain decisions were made and help future developers understand the reasoning behind the current architecture.
-
-### What are ADRs?
-
-ADRs are short text documents that capture a single architecture decision. They include:
+ADRs document significant architectural decisions made during development, providing context for why certain choices were made. Each ADR captures:
 
 - **Context**: The situation that led to the decision
 - **Decision**: The architectural choice that was made
-- **Consequences**: The positive and negative outcomes of the decision
+- **Consequences**: The positive and negative outcomes
 - **Alternatives**: Other options that were considered
 
-### ADR Format
-
-Our ADRs follow the [Michael Nygard template](https://github.com/joelparkerhenderson/architecture-decision-record#decision-record-template-by-michael-nygard) and include:
-
-- **Date**: When the decision was made
-- **Status**: Current status (Proposed, Accepted, Deprecated, etc.)
-- **Deciders**: Who made the decision
-- **Type**: Type of decision (Architecture Decision Record)
+We follow the [Michael Nygard ADR template](https://github.com/joelparkerhenderson/architecture-decision-record#decision-record-template-by-michael-nygard).
 
 ### Current ADRs
 
-- [ADR-001: Package Namespace Structure](20250116-package-namespace-structure.md) - Decision on using `pyinfra_orbstack` vs `pyinfra.orbstack` namespace
-- [ADR-002: Phase 3 Feasibility Analysis and Implementation Strategy](20251023-phase3-feasibility-analysis.md) - Analysis of Phase 3 requirements and redesign for Advanced VM Operations
+- [ADR-0001: Package Namespace Structure](adrs/0001-package-namespace.md) - Decision on using `pyinfra_orbstack` vs `pyinfra.orbstack` namespace
+- [ADR-0002: Scope Limitation for Advanced Operations](adrs/0002-advanced-operations-scope.md) - Decision to limit operations to those supported by OrbStack CLI and PyInfra's architectural model
+
+### Related Analysis Documents
+
+- [Phase 3 Feasibility Analysis](dev-journal/20251023-phase3-feasibility-analysis.md) - Comprehensive analysis of OrbStack CLI capabilities and PyInfra architectural constraints (informed ADR-0002)
 
 ### Creating New ADRs
 
 When making significant architectural decisions:
 
-1. Create a new ADR file in this directory
-2. Use the format: `YYYYMMDD-decision-title.md`
-3. Follow the template structure
-4. Update this README to include the new ADR
-5. Reference the ADR in relevant code or documentation
+1. Create a new ADR file in `adrs/` with format: `NNNN-decision-title.md` (e.g., `0003-caching-strategy.md`)
+2. Follow the [Michael Nygard template](https://github.com/joelparkerhenderson/architecture-decision-record#decision-record-template-by-michael-nygard)
+3. Update this `README.md` file to list the new ADR in the "Current ADRs" section
+4. Reference the ADR in relevant code or documentation
+5. Consider adding detailed analysis to `dev-journal/` if needed (link from ADR)
 
 ## Development Standards
 
@@ -156,21 +159,21 @@ uv run pre-commit run --all-files
 
 ## Testing Documentation
 
-- [Testing and Coverage Methodology](20251021-testing-and-coverage-methodology.md) - Comprehensive testing strategy and coverage standards
-- [Test Suite Refactoring Analysis](20251021-test-suite-refactoring-analysis.md) - Analysis of test redundancy and consolidation recommendations
-- [Test Implementation Analysis](20250817-test-implementation-analysis.md) - Details on test structure and implementation
-- [Running Tests](20251021-running-tests.md) - Guide to running tests with various options
-- [Test Timing Guide](20251025-test-timing-guide.md) - How to view test execution times and identify slow tests
-- [Live Test Monitoring](20251025-live-test-monitoring.md) - Real-time monitoring of test execution with live elapsed time updates
-- [Benchmark Guide](20251025-benchmark-guide.md) - Performance benchmarking and regression detection
+- [Testing and Coverage Methodology](dev-journal/20251021-testing-and-coverage-methodology.md) - Comprehensive testing strategy and coverage standards
+- [Test Suite Refactoring Analysis](dev-journal/20251021-test-suite-refactoring-analysis.md) - Analysis of test redundancy and consolidation recommendations
+- [Test Implementation Analysis](dev-journal/20250817-test-implementation-analysis.md) - Details on test structure and implementation
+- [Running Tests](dev-journal/20251021-running-tests.md) - Guide to running tests with various options
+- [Test Timing Guide](dev-journal/20251025-test-timing-guide.md) - How to view test execution times and identify slow tests
+- [Live Test Monitoring](dev-journal/20251025-live-test-monitoring.md) - Real-time monitoring of test execution with live elapsed time updates
+- [Benchmark Guide](dev-journal/20251025-benchmark-guide.md) - Performance benchmarking and regression detection
 
 ## System Performance and Troubleshooting
 
-- [OrbStack Timeout Analysis](20251025-orbstack-timeout-analysis.md) - Root cause analysis and
+- [OrbStack Timeout Analysis](dev-journal/20251025-orbstack-timeout-analysis.md) - Root cause analysis and
   mitigation strategies for VM creation timeouts
-- [Process Analysis and Recommendations](20251025-process-analysis-recommendations.md) - Memory
+- [Process Analysis and Recommendations](dev-journal/20251025-process-analysis-recommendations.md) - Memory
   optimization strategy and system resource management
-- [Test Results: Post Optimization](20251025-test-results-post-optimization.md) - Comprehensive
+- [Test Results: Post Optimization](dev-journal/20251025-test-results-post-optimization.md) - Comprehensive
   test suite results after memory optimization
 
 ## References

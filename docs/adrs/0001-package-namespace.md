@@ -1,4 +1,4 @@
-# ADR-001: Package Namespace Structure
+# ADR-0001: Package Namespace Structure
 
 **Date:** 2025-01-16
 **Status:** Accepted
