@@ -54,7 +54,14 @@ dev = [
     "flake8>=6.0.0",
     "mypy>=1.0.0",
     "pre-commit>=3.0.0",
+    "pytest-benchmark>=5.1.0",
     "pytest-cov>=4.0.0",
+    "pytest-instafail>=0.5.0",
+    "pytest-monitor>=1.6.6",
+    "pytest-progress>=1.3.0",
+    "pytest-timeout>=2.4.0",
+    "pytest-timer>=1.0.0",
+    "pytest-xdist>=3.8.0",
     "pytest>=7.0.0",
     "twine>=4.0.0",
 ]
@@ -178,6 +185,12 @@ addopts = [
     "--cov=src/pyinfra_orbstack",
     "--cov-report=term-missing",
     "--cov-report=html",
+    "--durations=10",  # Show 10 slowest tests at end
+    "--timer-top-n=10",  # Show top 10 tests with timing percentages
+    "--instafail",  # Show failures and errors instantly
+    "-v",  # Verbose output to see each test as it runs
+    "--show-progress",  # Show progress bar
+    "--timeout=180",  # 3 minute timeout per test (based on baseline metrics)
 ]
 markers = [
     "integration: mark test as integration test requiring OrbStack",
