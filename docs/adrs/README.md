@@ -30,6 +30,10 @@ Examples:
 |--------|-------|--------|------|
 | [0001](0001-package-namespace.md) | Package Namespace Structure | Accepted | 2025-01-16 |
 | [0002](0002-advanced-operations-scope.md) | Scope Limitation for Advanced Operations | Accepted | 2025-10-23 |
+| [0003](0003-multi-level-testing-strategy.md) | Multi-Level Testing Strategy | Accepted | 2025-10-27 |
+| [0004](0004-session-scoped-test-vms.md) | Session-Scoped Test VM Management | Accepted | 2025-10-27 |
+| [0005](0005-intelligent-retry-logic.md) | Intelligent Retry Logic for OrbStack Operations | Accepted | 2025-10-27 |
+| [0006](0006-operation-generator-pattern.md) | PyInfra Operation Generator Pattern with Command Builders | Accepted | 2025-10-27 |
 
 ## Creating a New ADR
 

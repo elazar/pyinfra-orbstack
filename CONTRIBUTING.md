@@ -539,9 +539,31 @@ print(data)
 orbctl delete test-dev-vm
 ```
 
+## Architectural Decisions
+
+When making significant architectural changes, document them as ADRs:
+
+- **Location:** `docs/adrs/`
+- **Format:** `NNNN-decision-title.md` (e.g., `0007-caching-strategy.md`)
+- **Template:** Follow [Michael Nygard ADR template](https://github.com/joelparkerhenderson/architecture-decision-record#decision-record-template-by-michael-nygard)
+
+### Existing ADRs to Review
+
+Before proposing architectural changes, review existing decisions:
+
+- [ADR-0001: Package Namespace Structure](docs/adrs/0001-package-namespace.md)
+- [ADR-0002: Scope Limitation for Advanced Operations](docs/adrs/0002-advanced-operations-scope.md)
+- [ADR-0003: Multi-Level Testing Strategy](docs/adrs/0003-multi-level-testing-strategy.md)
+- [ADR-0004: Session-Scoped Test VM Management](docs/adrs/0004-session-scoped-test-vms.md)
+- [ADR-0005: Intelligent Retry Logic for OrbStack Operations](docs/adrs/0005-intelligent-retry-logic.md)
+- [ADR-0006: PyInfra Operation Generator Pattern with Command Builders](docs/adrs/0006-operation-generator-pattern.md)
+
+See [Architecture Decision Records](docs/adrs/README.md) for the complete list.
+
 ## Getting Help
 
 - **[Documentation](docs/README.md):** Check `docs/` directory first
+- **[Architecture Decision Records](docs/adrs/README.md):** Understand key architectural decisions
 - **[GitHub Issues](https://github.com/elazar/pyinfra-orbstack/issues):** Search existing issues
 - **[GitHub Discussions](https://github.com/elazar/pyinfra-orbstack/discussions):** Ask questions
 - **PyInfra Community:** [pyinfra.com](https://pyinfra.com)

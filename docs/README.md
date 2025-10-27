@@ -25,12 +25,28 @@ We follow the [Michael Nygard ADR template](https://github.com/joelparkerhenders
 
 ### Current ADRs
 
+#### Project Structure and Scope
+
 - [ADR-0001: Package Namespace Structure](adrs/0001-package-namespace.md) - Decision on using `pyinfra_orbstack` vs `pyinfra.orbstack` namespace
 - [ADR-0002: Scope Limitation for Advanced Operations](adrs/0002-advanced-operations-scope.md) - Decision to limit operations to those supported by OrbStack CLI and PyInfra's architectural model
+
+#### Testing Architecture
+
+- [ADR-0003: Multi-Level Testing Strategy](adrs/0003-multi-level-testing-strategy.md) - Three-tier testing approach (unit, integration, E2E) with command builder extraction for decorator-wrapped code
+- [ADR-0004: Session-Scoped Test VM Management](adrs/0004-session-scoped-test-vms.md) - Worker VM strategy for 90% test time reduction and reliable parallel execution
+- [ADR-0005: Intelligent Retry Logic for OrbStack Operations](adrs/0005-intelligent-retry-logic.md) - Exponential backoff retry strategy with error classification for network-dependent operations
+
+#### Implementation Patterns
+
+- [ADR-0006: PyInfra Operation Generator Pattern with Command Builders](adrs/0006-operation-generator-pattern.md) - Generator-based operations with extracted command builders for testability
 
 ### Related Analysis Documents
 
 - [Phase 3 Feasibility Analysis](dev-journal/20251023-phase3-feasibility-analysis.md) - Comprehensive analysis of OrbStack CLI capabilities and PyInfra architectural constraints (informed ADR-0002)
+- [Testing and Coverage Methodology](dev-journal/20251021-testing-and-coverage-methodology.md) - Detailed testing strategy analysis (informed ADR-0003)
+- [Test VM Management Implementation Summary](dev-journal/20251025-test-vm-management-implementation-summary.md) - Complete implementation details for session-scoped VMs (informed ADR-0004)
+- [Bug Fix Complete Success](dev-journal/20251025-bug-fix-complete-success.md) - Retry logic implementation and validation (informed ADR-0005)
+- [PyInfra Operations Issue Analysis](dev-journal/20250116-pyinfra-operations-issue-analysis.md) - Discovery of correct operation pattern (informed ADR-0006)
 
 ### Creating New ADRs
 
