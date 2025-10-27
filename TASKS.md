@@ -372,35 +372,59 @@ See ADR-002 for complete analysis and recommendations.
   - [ ] Add network configuration examples
   - [ ] Create monitoring and maintenance examples
 
-### Phase 6: Performance Optimization and Advanced Features
+### Phase 6: Observability and Operational Enhancements (Optional)
 
-#### Task 6.1: Performance Optimization
+**Status:** Scoped down based on feasibility analysis
+**Reference:** `docs/dev-journal/20251027-phase6-scope-evaluation.md`
 
-- [ ] **6.1.1** Implement caching and state management
-  - [ ] Add intelligent caching for VM information
-  - [ ] Implement incremental fact gathering
-  - [ ] Optimize connection pooling
-  - [ ] Add batch operation support
+**Note:** Original Phase 6 proposed 14 tasks. After evaluation, most were determined to be either not feasible (OrbStack limitations), out of scope (monitoring belongs in dedicated tools), or premature optimization. This reduced scope focuses on high-value, low-cost enhancements.
 
-- [ ] **6.1.2** Add performance monitoring
-  - [ ] Implement operation timing and metrics
-  - [ ] Add resource usage monitoring
-  - [ ] Create performance benchmarking tools
-  - [ ] Implement optimization recommendations
+#### Task 6.1: Operation Observability
 
-#### Task 6.2: Advanced Features
+- [ ] **6.1.1** Implement operation timing and metrics
+  - [ ] Add timing decorator/wrapper for operations
+  - [ ] Collect operation metrics (duration, success/failure, operation name)
+  - [ ] Store metrics in structured format (JSON/CSV)
+  - [ ] Add optional metrics export capability
+  - [ ] Document metrics usage and analysis
 
-- [ ] **6.2.1** Implement advanced VM management
-  - [ ] Add VM snapshot management
-  - [ ] Implement VM backup and restore
-  - [ ] Create VM migration utilities
-  - [ ] Add advanced networking features
+- [ ] **6.1.2** Formalize performance benchmarking tools
+  - [ ] Create `scripts/benchmark.py` tool from existing pytest-benchmark setup
+  - [ ] Extract benchmark scenarios from test suite
+  - [ ] Add historical performance comparison capability
+  - [ ] Document benchmark usage for users
+  - [ ] Add CI integration for regression detection
 
-- [ ] **6.2.2** Create monitoring and alerting
-  - [ ] Implement VM health monitoring
-  - [ ] Add automated alerting capabilities
-  - [ ] Create dashboard integration
-  - [ ] Implement log aggregation
+#### Task 6.2: Backup and Restore Enhancements
+
+- [ ] **6.2.1** Enhance VM backup operations
+  - [ ] Create `vm_backup_create()` wrapper with metadata support
+  - [ ] Implement `vm_backup_rotate()` for cleanup of old backups
+  - [ ] Add backup verification functionality
+  - [ ] Document backup strategies and best practices
+
+**Estimated Effort:** 6-10 days (down from 40-80 days in original scope)
+
+#### Rejected Tasks (See Evaluation Document)
+
+**Not Feasible - OrbStack Limitations:**
+- ❌ Connection pooling (no persistent connection support in OrbStack)
+- ❌ VM snapshots (not supported by OrbStack CLI)
+- ❌ Advanced networking features (OrbStack manages networking automatically)
+
+**Not Recommended - Low Value:**
+- ❌ Intelligent caching (premature optimization, no demonstrated need)
+- ❌ Incremental fact gathering (complex, not justified)
+- ❌ Batch operations (PyInfra already provides parallel execution)
+- ❌ Optimization recommendations (too ambitious, limited value)
+- ❌ VM migration utilities (already solved by vm_export/vm_import)
+
+**Out of Scope - Wrong Tool:**
+- ❌ Resource usage monitoring (users can implement with standard operations)
+- ❌ VM health monitoring (use dedicated monitoring tools like Prometheus)
+- ❌ Automated alerting (use alerting platforms like PagerDuty)
+- ❌ Dashboard integration (use monitoring dashboards like Grafana)
+- ❌ Log aggregation (use logging platforms like ELK/Loki)
 
 ### Phase 7: PyPI Publishing and Distribution
 
@@ -577,10 +601,11 @@ See ADR-002 for complete analysis and recommendations.
    - Create migration guide from CLI to connector approach
    - Add compatibility matrix and testing documentation
 
-2. **Optional: Phase 6: Performance Optimization** (after Phase 5)
-   - Implement caching and state management
-   - Add performance monitoring
-   - Consider advanced features based on user feedback
+2. **Optional: Phase 6: Observability Enhancements** (after Phase 5)
+   - Implement operation timing and metrics
+   - Formalize performance benchmarking
+   - Add backup/restore enhancements
+   - **Note:** Significantly reduced scope from original plan (6-10 days vs 40-80 days)
 
 3. **Future: Phase 7: PyPI Publishing** (when ready for public release)
    - Finalize package metadata
