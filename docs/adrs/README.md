@@ -34,6 +34,7 @@ Examples:
 | [0004](0004-session-scoped-test-vms.md) | Session-Scoped Test VM Management | Accepted | 2025-10-27 |
 | [0005](0005-intelligent-retry-logic.md) | Intelligent Retry Logic for OrbStack Operations | Accepted | 2025-10-27 |
 | [0006](0006-operation-generator-pattern.md) | PyInfra Operation Generator Pattern with Command Builders | Accepted | 2025-10-27 |
+| [0007](0007-simple-logging-based-timing.md) | Simple Logging-Based Timing Over Complex Metrics Infrastructure | Accepted | 2025-10-28 |
 
 ## Creating a New ADR
 

@@ -558,6 +558,24 @@ if host in inventory.get_group("db_servers"):
     )
 ```
 
+## Operation Timing (Optional)
+
+For debugging and performance analysis, enable operation timing:
+
+```python
+import logging
+from pyinfra_orbstack.timing import timed_operation
+
+# Enable timing logs
+logging.basicConfig(level=logging.INFO)
+
+with timed_operation("vm_deployment"):
+    vm_create(name="web-server", image="ubuntu:22.04")
+    # ... other operations
+```
+
+See [Timing Guide](docs/user-guide/timing-guide.md) for details.
+
 ## Development
 
 For detailed development information, standards, and guidelines, see the [Documentation Index](docs/README.md).

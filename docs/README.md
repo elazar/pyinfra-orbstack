@@ -39,6 +39,7 @@ We follow the [Michael Nygard ADR template](https://github.com/joelparkerhenders
 #### Implementation Patterns
 
 - [ADR-0006: PyInfra Operation Generator Pattern with Command Builders](adrs/0006-operation-generator-pattern.md) - Generator-based operations with extracted command builders for testability
+- [ADR-0007: Simple Logging-Based Timing Over Complex Metrics Infrastructure](adrs/0007-simple-logging-based-timing.md) - Decision to use simple logging for operation timing instead of complex metrics collection or external libraries
 
 ### Related Analysis Documents
 
