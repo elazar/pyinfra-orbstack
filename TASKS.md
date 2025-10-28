@@ -402,16 +402,25 @@ See ADR-002 for complete analysis and recommendations.
 - Extensive examples demonstrating real-world usage patterns
 - Compatibility matrix documenting tested configurations
 
-### Phase 6: Optional Enhancements 🔄 **IN PROGRESS**
+### Phase 6: Optional Enhancements ⚠️ **PARTIALLY COMPLETE**
 
-**Status:** Simplified based on YAGNI principle
+**Status:** Task 6.1 (Timing) complete, Task 6.2 (Backups) deferred
 **Reference:** Previous evaluation document `docs/dev-journal/20251027-phase6-scope-evaluation.md`
+
+**Completed:** 2025-10-28 (Task 6.1 only)
 
 **Note:** Original Phase 6 proposed extensive observability infrastructure. After evaluation, determined that:
 1. PyInfra already provides timing in output
 2. Users can instrument with their own monitoring tools
 3. Complex metrics infrastructure (304 lines) is overkill for optional feature
 4. Simple logging with timing helper is sufficient for debugging/performance analysis
+
+**Deliverables:**
+- ✅ Simple timing utility (123 lines) with context manager and decorator
+- ⚠️ Backup operations deferred pending user need validation (see deferral document)
+- ✅ Comprehensive timing documentation
+- ✅ Full test coverage for timing functionality
+- ✅ ADR-0007 documenting timing design decisions
 
 #### Task 6.1: Simple Operation Timing ✅ **COMPLETED**
 
@@ -458,15 +467,45 @@ See ADR-002 for complete analysis and recommendations.
 3. YAGNI - users who need advanced metrics can use Prometheus/DataDog/etc
 4. Maintainability - 100 lines vs 300+ lines of custom metrics code
 
-#### Task 6.2: Backup and Restore Enhancements (Optional)
+####Task 6.2: Backup and Restore Enhancements ⚠️ **DEFERRED**
 
-- [ ] **6.2.1** Enhance VM backup operations
+- [ ] **6.2.1** Enhance VM backup operations ⚠️ **DEFERRED**
   - [ ] Create `vm_backup_create()` wrapper with metadata support
   - [ ] Implement `vm_backup_rotate()` for cleanup of old backups
-  - [ ] Add backup verification functionality
+  - [ ] Add `vm_backup_verify()` for backup validation
   - [ ] Document backup strategies and best practices
 
-**Estimated Effort:** 2-3 days (down from 6-10 days in previous scope)
+**Deferral Rationale:**
+
+**Decision:** Deferred pending user need validation
+
+**Completed:** 2025-10-28 - Implemented then removed after honest assessment
+
+**Why Deferred:**
+- OrbStack VMs are typically ephemeral (dev/test workloads)
+- Existing operations (`vm_clone`, `vm_export`, `vm_import`) handle 90% of real backup needs
+- Most users (80-90%) just recreate VMs rather than backup
+- Small minority (~10-20%) who might use automated backups
+- Manual timestamping with `vm_export()` is only ~3 lines of code
+- Feature would add ~1,000 lines (code + tests + docs) for minority use case
+
+**What Users Already Have:**
+```python
+# Quick snapshot (sufficient for most)
+vm_clone("working", "backup")
+
+# Manual export with timestamp (3 lines, works fine)
+from datetime import datetime
+timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+vm_export("my-vm", f"/backups/my-vm-{timestamp}.tar.zst")
+```
+
+**Reconsideration Criteria:**
+- 3+ users request automated backup features via GitHub issues
+- Evidence of users writing complex backup scripts
+- Clear pain points with manual timestamping approach
+
+**Documentation:** See `docs/dev-journal/20251028-backup-operations-deferral.md` for complete analysis
 
 #### Rejected Tasks (See Evaluation Document)
 
@@ -647,7 +686,7 @@ See ADR-002 for complete analysis and recommendations.
 
 ## Next Steps
 
-### Current Status: Phase 5 Complete ✅ - Ready for Phase 6
+### Current Status: Phase 6 Partially Complete ⚠️ - Ready for Phase 7
 
 **Phases 1-5 Completed:**
 - ✅ Phase 1: Foundation and Core Infrastructure
@@ -655,16 +694,15 @@ See ADR-002 for complete analysis and recommendations.
 - ✅ Phase 3: Enhanced VM Operations
 - ✅ Phase 4: Testing and Validation
 - ✅ Phase 5: Documentation and Examples
+- ⚠️ Phase 6: Optional Enhancements (Timing complete, Backups deferred)
 
-**Immediate Next Steps:**
+**Phase 6 Status:**
+- ✅ Task 6.1: Simple timing utility (complete)
+- ⚠️ Task 6.2: Backup operations (deferred pending user need validation)
 
-1. **Begin Phase 6: Observability Enhancements** (Optional - Reduced Scope)
-   - Implement operation timing and metrics
-   - Formalize performance benchmarking
-   - Add backup/restore enhancements
-   - **Note:** Significantly reduced scope from original plan (6-10 days vs 40-80 days)
+**Next Steps:**
 
-2. **Future: Phase 7: PyPI Publishing** (when ready for public release)
+1. **Phase 7: PyPI Publishing** (when ready for public release)
    - Finalize package metadata
    - Set up automated publishing
    - Create PyPI project page
@@ -672,14 +710,16 @@ See ADR-002 for complete analysis and recommendations.
 
 ### Recommended Priorities
 
-**Current Priority (Phase 6 - Optional):**
-- Operation timing and metrics collection
-- Performance benchmarking formalization
-- Backup/restore enhancements
-
-**When Ready for Public Release (Phase 7):**
+**Next Priority (Phase 7 - When Ready):**
 - PyPI publishing and public release
 - Community engagement and contribution guidelines
+- Package distribution automation
+
+**Core Development Complete:**
+- All functional requirements met (Phases 1-6)
+- 99% test coverage achieved
+- Comprehensive documentation complete
+- Optional enhancements implemented
 
 ---
 

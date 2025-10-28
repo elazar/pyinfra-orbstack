@@ -206,6 +206,27 @@ conn_str = ssh_connect_string("my-vm")
 print(f"Connect with: {conn_str}")
 ```
 
+## VM Backup and Export
+
+For backing up VMs, use the built-in export/import operations:
+
+```python
+from pyinfra_orbstack.operations.vm import vm_export, vm_import, vm_clone
+
+# Quick snapshot (instant)
+vm_clone("my-vm", "my-vm-backup")
+
+# Export to file (for sharing or archival)
+from datetime import datetime
+timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+vm_export("my-vm", f"/backups/my-vm-{timestamp}.tar.zst")
+
+# Restore from export
+vm_import("/backups/my-vm-20251028.tar.zst", "my-vm-restored")
+```
+
+**For automated backup workflows:** Users can easily script around `vm_export()` if needed.
+
 ### Configuration Management Operations (Phase 3B)
 
 ```python
