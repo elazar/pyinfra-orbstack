@@ -1,5 +1,11 @@
 # PyInfra OrbStack Connector
 
+[![CI](https://github.com/elazar/pyinfra-orbstack/workflows/CI/badge.svg)](https://github.com/elazar/pyinfra-orbstack/actions)
+[![codecov](https://codecov.io/gh/elazar/pyinfra-orbstack/branch/main/graph/badge.svg)](https://codecov.io/gh/elazar/pyinfra-orbstack)
+[![PyPI version](https://badge.fury.io/py/pyinfra-orbstack.svg)](https://badge.fury.io/py/pyinfra-orbstack)
+[![Python versions](https://img.shields.io/pypi/pyversions/pyinfra-orbstack.svg)](https://pypi.org/project/pyinfra-orbstack/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A PyInfra connector for managing OrbStack VMs and containers with native integration.
 
 ## Overview
@@ -422,8 +428,29 @@ external_ip = vm_dns_lookup("google.com")
 The connector automatically discovers all OrbStack VMs and makes them available as PyInfra hosts:
 
 ```python
-# All VMs are automatically available
-# Use @orbstack connector to access them
+# inventory.py
+from pyinfra import inventory
+
+# Automatically discover and add all running OrbStack VMs
+inventory.add_group("@orbstack")
+
+# Now you can use them in your deployment
+```
+
+```python
+# deploy.py
+from pyinfra import host
+from pyinfra.operations import server
+
+# This will run on all discovered OrbStack VMs
+server.shell(
+    name="Check hostname",
+    commands=["hostname"],
+)
+
+# Access VM properties
+print(f"Deploying to: {host.name}")
+print(f"VM IP: {host.data.get('vm_ip', 'unknown')}")
 ```
 
 ### VM Groups
