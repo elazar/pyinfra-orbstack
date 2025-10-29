@@ -45,11 +45,13 @@ Based on OrbStack's capabilities, the following should work but have not been ex
 
 | Version | Status | Notes |
 |---------|--------|-------|
-| **3.11+** | ✅ Verified | Tested during development |
-| **3.10** | 🟡 Expected | Should work (minimum 3.8) |
-| **3.9** | 🟡 Expected | Should work (minimum 3.8) |
-| **3.8** | 🟡 Expected | Minimum required version |
-| **<3.8** | ❌ Not Supported | Too old |
+| **3.12** | ✅ Verified | Tested in CI, recommended |
+| **3.11** | ✅ Verified | Tested in CI, recommended |
+| **3.10** | ✅ Verified | Tested in CI, recommended |
+| **3.9** | ⚠️ Supported | Minimum version, **EOL Oct 2025** - recommend upgrading |
+| **<3.9** | ❌ Not Supported | Too old |
+
+**Note:** Python 3.9 reached end-of-life on October 5, 2025 and no longer receives security updates. While pyinfra-orbstack still supports Python 3.9 for compatibility with macOS system Python, we recommend using Python 3.10 or later for security reasons.
 
 ### PyInfra Versions
 
@@ -123,7 +125,7 @@ The following are **limitations of OrbStack itself**, not the connector:
 
 ```toml
 [project]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
     "pyinfra>=2.0.0",
 ]
@@ -159,7 +161,7 @@ pytest
 
 ```bash
 # Check Python version
-python --version  # Should be 3.8+
+python --version  # Should be 3.9+
 
 # Check PyInfra version
 pip show pyinfra  # Should be 2.0.0+

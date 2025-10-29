@@ -29,7 +29,7 @@ declarative infrastructure automation framework.
 
 ### Prerequisites
 
-- Python 3.8 or higher
+- Python 3.9 or higher
 - PyInfra 2.0.0 or higher
 - OrbStack installed and configured
 - uv (recommended) or pip for package management

@@ -22,7 +22,7 @@ This guide helps you diagnose and resolve common issues when using the PyInfra O
 **Solution:**
 
 ```bash
-# Verify Python version (3.8+ required)
+# Verify Python version (3.9+ required)
 python --version
 
 # For development installation from source

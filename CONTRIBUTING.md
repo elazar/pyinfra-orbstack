@@ -31,7 +31,7 @@ Before contributing, ensure you have:
 
 - **macOS** (OrbStack's primary platform)
 - **[OrbStack](https://orbstack.dev/)** 2.0.0+ installed and running
-- **Python** 3.8 or higher
+- **Python** 3.9 or higher
 - **[uv](https://github.com/astral-sh/uv)** package manager (recommended) or [pip](https://pip.pypa.io/)
 - **[Git](https://git-scm.com/)** for version control
 

@@ -616,7 +616,7 @@ vm_export("my-vm", f"/backups/my-vm-{timestamp}.tar.zst")
 ### Compatibility Requirements
 
 - **OrbStack Versions:** Support for current and recent versions
-- **Python Versions:** Python 3.8+ compatibility
+- **Python Versions:** Python 3.9+ compatibility
 - **PyInfra Versions:** Support for current PyInfra releases
 - **Operating Systems:** macOS (primary), Linux (secondary)
 - **PyPI Compatibility:** Follow PyPI packaging standards and best practices
@@ -676,7 +676,7 @@ vm_export("my-vm", f"/backups/my-vm-{timestamp}.tar.zst")
 
 - **OrbStack:** Must be installed and configured on target systems
 - **PyInfra:** Compatible version required for connector integration
-- **Python:** 3.8+ with standard library modules
+- **Python:** 3.9+ with standard library modules
 
 ### Internal Dependencies
 
