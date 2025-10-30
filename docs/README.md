@@ -6,9 +6,9 @@ This directory contains project documentation and architectural decision records
 
 ### Directory Structure and Standards
 
-- **`user-guide/`** - User-facing documentation (installation, usage, tutorials, troubleshooting)
-- **`dev-journal/`** - Development journal and historical analysis documents with date-stamped filenames (`YYYYMMDD-topic.md`)
-- **`adrs/`** - Architecture Decision Records (ADRs) documenting significant architectural decisions
+- **[`user-guide/`](user-guide/)** - User-facing documentation (installation, usage, tutorials, troubleshooting)
+- **[`dev-journal/`](dev-journal/)** - Development journal and historical analysis documents with date-stamped filenames (`YYYYMMDD-topic.md`)
+- **[`adrs/`](adrs/)** - Architecture Decision Records (ADRs) documenting significant architectural decisions
 - **Root `docs/`** - Single-file documentation (this `README.md` file, standards)
 - **Additional subdirectories** - Topic-specific multi-file documentation as needed
 
