@@ -7,6 +7,7 @@ to achieve real coverage of the operations module.
 
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import time
@@ -15,11 +16,20 @@ from unittest import TestCase
 from tests.test_utils import create_vm_with_retry, delete_vm_with_retry
 
 
+def is_orbctl_available():
+    """Check if orbctl command is available."""
+    return shutil.which("orbctl") is not None
+
+
 class TestPyInfraOperationsE2E(TestCase):
     """End-to-end tests for PyInfra operations execution."""
 
     def setUp(self):
         """Set up test environment."""
+        # Skip all tests if orbctl is not available
+        if not is_orbctl_available():
+            self.skipTest("orbctl not available (OrbStack not installed)")
+
         self.test_vm_name = f"e2e-ops-vm-{int(time.time())}"
         self.test_image = "ubuntu:22.04"
         self.temp_dir = tempfile.mkdtemp()
