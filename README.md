@@ -233,7 +233,7 @@ vm_import("/backups/my-vm-20251028.tar.zst", "my-vm-restored")
 
 **For automated backup workflows:** Users can easily script around `vm_export()` if needed.
 
-### Configuration Management Operations (Phase 3B)
+### Configuration Management Operations
 
 ```python
 from pyinfra_orbstack.operations.vm import (
@@ -286,7 +286,7 @@ vm_username_set("db-server", "postgres")
 
 - **Effect of Changes**: Some configuration changes may require restarting OrbStack to take effect
 
-### Logging and Diagnostics Operations (Phase 3C)
+### Logging and Diagnostics Operations
 
 ```python
 from pyinfra_orbstack.operations.vm import (
@@ -333,7 +333,7 @@ print(f"VM Image: {status.get('image')}")
   - Resource information
   - Image details
 
-### VM Networking Information Operations (Phase 3A)
+### VM Networking Information Operations
 
 ```python
 from pyinfra_orbstack.operations.vm import (

@@ -1,7 +1,6 @@
 # Operation Timing Guide
 
 **Date:** 2025-10-28
-**Status:** Phase 6 Implementation
 
 This guide explains how to use the timing utility to monitor operation performance in pyinfra-orbstack.
 
