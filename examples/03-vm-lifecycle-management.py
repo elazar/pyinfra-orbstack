@@ -16,10 +16,7 @@ from pyinfra import host
 from pyinfra.operations import server
 
 # Import OrbStack-specific operations
-from pyinfra_orbstack.operations.vm import (
-    vm_info,
-    vm_list,
-)
+from pyinfra_orbstack.operations.vm import vm_info, vm_list
 
 # Additional operations available (commented out for safety):
 # from pyinfra_orbstack.operations.vm import (
