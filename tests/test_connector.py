@@ -225,8 +225,8 @@ class TestOrbStackConnector(TestCase):
             assert success
             assert "test" in str(output)
 
-    def test_run_shell_command_string_command(self):
-        """Test command execution with StringCommand object."""
+    def test_run_shell_command_string_command_multibit(self):
+        """Test command execution with multi-bit StringCommand object."""
         with patch.object(self.connector, "_execute_with_retry") as mock_execute:
             mock_result = Mock()
             mock_result.returncode = 0
@@ -251,6 +251,171 @@ class TestOrbStackConnector(TestCase):
                 "sh",
                 "-c",
                 "command -v vtysh || true",
+            ]
+
+    def test_run_shell_command_plain_string_with_shell_features(self):
+        """Test plain string commands get wrapped with sh -c for shell feature support."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = ""
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # Plain string from PyInfra facts - should be wrapped in sh -c
+            success, output = self.connector.run_shell_command(
+                "command -v vtysh || true"
+            )
+
+            assert success
+
+            # Verify command was wrapped with sh -c
+            call_args = mock_execute.call_args[0][0]
+            assert call_args == [
+                "orbctl",
+                "run",
+                "-m",
+                "test-vm",
+                "sh",
+                "-c",
+                "command -v vtysh || true",
+            ]
+
+    def test_run_shell_command_plain_string_with_pipes(self):
+        """Test plain string with pipes gets wrapped with sh -c."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = "test\n"
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # Command with pipe - needs shell interpretation
+            success, output = self.connector.run_shell_command("echo test | grep test")
+
+            assert success
+            assert "test" in str(output)
+
+            # Verify command was wrapped with sh -c
+            call_args = mock_execute.call_args[0][0]
+            assert call_args == [
+                "orbctl",
+                "run",
+                "-m",
+                "test-vm",
+                "sh",
+                "-c",
+                "echo test | grep test",
+            ]
+
+    def test_run_shell_command_single_bit_string_command(self):
+        """Test single-bit StringCommand gets wrapped with sh -c."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = ""
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # Single-bit StringCommand - should be wrapped in sh -c
+            cmd = StringCommand(
+                "timeout 60 bash -c 'while fuser /var/lib/dpkg/lock; do sleep 1; done' || true"
+            )
+            success, output = self.connector.run_shell_command(cmd)
+
+            assert success
+
+            # Verify single-bit command was wrapped with sh -c
+            call_args = mock_execute.call_args[0][0]
+            assert call_args == [
+                "orbctl",
+                "run",
+                "-m",
+                "test-vm",
+                "sh",
+                "-c",
+                "timeout 60 bash -c 'while fuser /var/lib/dpkg/lock; do sleep 1; done' || true",
+            ]
+
+    def test_run_shell_command_complex_nested_command(self):
+        """Test complex nested command with timeout and boolean operators."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = ""
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # Complex command with nested bash -c and boolean operators
+            complex_cmd = "timeout 60 bash -c 'while fuser /var/lib/dpkg/lock; do sleep 1; done' || true"
+            success, output = self.connector.run_shell_command(complex_cmd)
+
+            assert success
+
+            # Verify command was wrapped with sh -c
+            call_args = mock_execute.call_args[0][0]
+            assert call_args == [
+                "orbctl",
+                "run",
+                "-m",
+                "test-vm",
+                "sh",
+                "-c",
+                complex_cmd,
+            ]
+
+    def test_run_shell_command_with_redirections(self):
+        """Test command with redirections gets proper shell wrapping."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = ""
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # Command with output redirection
+            success, output = self.connector.run_shell_command(
+                "echo test > /tmp/output.txt"
+            )
+
+            assert success
+
+            # Verify command was wrapped with sh -c
+            call_args = mock_execute.call_args[0][0]
+            assert call_args == [
+                "orbctl",
+                "run",
+                "-m",
+                "test-vm",
+                "sh",
+                "-c",
+                "echo test > /tmp/output.txt",
+            ]
+
+    def test_run_shell_command_with_logical_and(self):
+        """Test command with logical AND operator (&&) gets proper shell wrapping."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = "success\n"
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # Command with logical AND
+            success, output = self.connector.run_shell_command("cd /tmp && pwd")
+
+            assert success
+
+            # Verify command was wrapped with sh -c
+            call_args = mock_execute.call_args[0][0]
+            assert call_args == [
+                "orbctl",
+                "run",
+                "-m",
+                "test-vm",
+                "sh",
+                "-c",
+                "cd /tmp && pwd",
             ]
 
     def test_put_file_success(self):

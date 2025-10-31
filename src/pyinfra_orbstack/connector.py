@@ -277,11 +277,18 @@ class OrbStackConnector(BaseConnector):
 
             # Add the actual command - handle str, StringCommand, and lists
             if isinstance(command, str):
-                cmd.append(command)  # Pass entire command as single arg
+                # Plain strings need to be wrapped in sh -c for shell interpretation
+                cmd.extend(["sh", "-c", command])
             elif hasattr(command, "bits"):
-                # StringCommand.bits contains individual arguments (e.g., ('sh', '-c', 'command'))
-                # Extract them to pass separately to orbctl
-                cmd.extend([str(bit) for bit in command.bits])
+                # StringCommand.bits contains individual arguments
+                bits = [str(bit) for bit in command.bits]
+
+                # If it's a single-bit command, wrap it in sh -c for shell features
+                if len(bits) == 1:
+                    cmd.extend(["sh", "-c", bits[0]])
+                else:
+                    # Multi-bit StringCommand (already has sh -c structure)
+                    cmd.extend(bits)
             else:
                 # Handle plain lists or other iterables
                 cmd.extend([str(arg) for arg in command])

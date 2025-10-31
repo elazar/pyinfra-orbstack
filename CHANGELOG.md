@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Connector now wraps shell commands in `sh -c` to properly support shell features (pipes, boolean operators, redirections). Plain strings and single-bit StringCommand objects are now wrapped, while multi-bit commands pass through unchanged.
+
 ### Security
 
 ## [0.3.0] - 2025-10-31
