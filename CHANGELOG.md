@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.2.0] - 2025-10-31
+
+### Fixed
+
+- Connector now passes shell commands as single string to `orbctl run` instead of splitting on whitespace, fixing commands with quotes and special characters
+
 ## [0.1.0] - 2025-10-29
 
 Initial public release of PyInfra OrbStack Connector.
@@ -107,5 +113,6 @@ Initial public release of PyInfra OrbStack Connector.
 - VM creation timeout handling with proper string matching
 - Worker VM reuse for 40% faster test execution
 
-[Unreleased]: https://github.com/elazar/pyinfra-orbstack/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/elazar/pyinfra-orbstack/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/elazar/pyinfra-orbstack/releases/tag/v0.1.0

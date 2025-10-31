@@ -237,7 +237,7 @@ class TestOrbStackCLIMocks:
 
         # Verify orbctl run was called correctly
         mock_run.assert_called_once_with(
-            ["orbctl", "run", "-m", "test-vm", "uname", "-a"],
+            ["orbctl", "run", "-m", "test-vm", "uname -a"],
             capture_output=True,
             text=True,
             timeout=60,
@@ -639,3 +639,8 @@ class TestOrbStackCLIEdgeCases:
         assert success is True
         assert "path/to/file with spaces" in output.stdout
         assert "warning: 'special' \"quotes\"" in output.stderr
+
+        # Verify the command was passed as a single string (not split on whitespace)
+        mock_run.assert_called_once()
+        call_args = mock_run.call_args[0][0]  # First positional arg
+        assert call_args == ["orbctl", "run", "-m", "test-vm", "ls 'path with spaces'"]

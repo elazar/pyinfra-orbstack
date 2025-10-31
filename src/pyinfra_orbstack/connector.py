@@ -275,9 +275,9 @@ class OrbStackConnector(BaseConnector):
             if workdir:
                 cmd.extend(["-w", workdir])
 
-            # Add the actual command - split if it's a string
+            # Add the actual command - pass as single argument to shell
             if isinstance(command, str):
-                cmd.extend(command.split())
+                cmd.append(command)  # Pass entire command as single arg
             else:
                 cmd.extend([str(command)])
 
