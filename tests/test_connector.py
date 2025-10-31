@@ -7,6 +7,8 @@ import subprocess
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
+from pyinfra.api import StringCommand
+
 from pyinfra_orbstack.connector import OrbStackConnector
 
 
@@ -210,7 +212,7 @@ class TestOrbStackConnector(TestCase):
             assert "Command not found" in str(output)
 
     def test_run_shell_command_non_string_command(self):
-        """Test command execution with non-string command."""
+        """Test command execution with non-string command (list)."""
         with patch.object(self.connector, "_execute_with_retry") as mock_execute:
             mock_result = Mock()
             mock_result.returncode = 0
@@ -222,6 +224,34 @@ class TestOrbStackConnector(TestCase):
 
             assert success
             assert "test" in str(output)
+
+    def test_run_shell_command_string_command(self):
+        """Test command execution with StringCommand object."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = "/usr/bin/vtysh\n"
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # PyInfra wraps commands like: StringCommand("sh", "-c", "command -v vtysh || true")
+            cmd = StringCommand("sh", "-c", "command -v vtysh || true")
+            success, output = self.connector.run_shell_command(cmd)
+
+            assert success
+            assert "vtysh" in str(output)
+
+            # Verify that the command was passed as separate arguments
+            call_args = mock_execute.call_args[0][0]
+            assert call_args == [
+                "orbctl",
+                "run",
+                "-m",
+                "test-vm",
+                "sh",
+                "-c",
+                "command -v vtysh || true",
+            ]
 
     def test_put_file_success(self):
         """Test successful file upload."""

@@ -275,11 +275,16 @@ class OrbStackConnector(BaseConnector):
             if workdir:
                 cmd.extend(["-w", workdir])
 
-            # Add the actual command - pass as single argument to shell
+            # Add the actual command - handle str, StringCommand, and lists
             if isinstance(command, str):
                 cmd.append(command)  # Pass entire command as single arg
+            elif hasattr(command, "bits"):
+                # StringCommand.bits contains individual arguments (e.g., ('sh', '-c', 'command'))
+                # Extract them to pass separately to orbctl
+                cmd.extend([str(bit) for bit in command.bits])
             else:
-                cmd.extend([str(command)])
+                # Handle plain lists or other iterables
+                cmd.extend([str(arg) for arg in command])
 
             # Determine if this is a network-heavy operation
             command_str = str(command).lower()

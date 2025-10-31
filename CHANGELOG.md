@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Connector now passes shell commands as single string to `orbctl run` instead of splitting on whitespace, fixing commands with quotes and special characters
+- Connector now properly handles `StringCommand` objects by extracting individual arguments from `.bits` attribute, fixing PyInfra facts that use `sh -c` command wrappers
 
 ## [0.1.0] - 2025-10-29
 
