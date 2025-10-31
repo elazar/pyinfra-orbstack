@@ -17,9 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Connector now wraps shell commands in `sh -c` to properly support shell features (pipes, boolean operators, redirections). Plain strings and single-bit StringCommand objects are now wrapped, while multi-bit commands pass through unchanged.
-
 ### Security
+
+## [0.4.0] - 2025-11-01
+
+### Fixed
+
+- Connector now wraps shell commands in `sh -c` to properly support shell features (pipes, boolean operators, redirections). Plain strings and single-bit StringCommand objects are now wrapped, while multi-bit commands pass through unchanged.
 
 ## [0.3.0] - 2025-10-31
 
@@ -121,7 +125,8 @@ Initial public release of PyInfra OrbStack Connector.
 - VM creation timeout handling with proper string matching
 - Worker VM reuse for 40% faster test execution
 
-[Unreleased]: https://github.com/elazar/pyinfra-orbstack/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/elazar/pyinfra-orbstack/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/elazar/pyinfra-orbstack/releases/tag/v0.1.0

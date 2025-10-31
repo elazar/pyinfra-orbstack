@@ -235,9 +235,9 @@ class TestOrbStackCLIMocks:
         assert success is True
         assert output.stdout == "Hello from Ubuntu 22.04.3 LTS"
 
-        # Verify orbctl run was called correctly
+        # Verify orbctl run was called correctly with sh -c wrapping
         mock_run.assert_called_once_with(
-            ["orbctl", "run", "-m", "test-vm", "uname -a"],
+            ["orbctl", "run", "-m", "test-vm", "sh", "-c", "uname -a"],
             capture_output=True,
             text=True,
             timeout=60,
@@ -261,7 +261,7 @@ class TestOrbStackCLIMocks:
         assert success is True
         assert output.stdout == "/home/ubuntu/project"
 
-        # Verify orbctl run was called with correct flags
+        # Verify orbctl run was called with correct flags and sh -c wrapping
         mock_run.assert_called_once_with(
             [
                 "orbctl",
@@ -272,6 +272,8 @@ class TestOrbStackCLIMocks:
                 "ubuntu",
                 "-w",
                 "/home/ubuntu/project",
+                "sh",
+                "-c",
                 "pwd",
             ],
             capture_output=True,
@@ -640,7 +642,15 @@ class TestOrbStackCLIEdgeCases:
         assert "path/to/file with spaces" in output.stdout
         assert "warning: 'special' \"quotes\"" in output.stderr
 
-        # Verify the command was passed as a single string (not split on whitespace)
+        # Verify the command was wrapped with sh -c for proper shell interpretation
         mock_run.assert_called_once()
         call_args = mock_run.call_args[0][0]  # First positional arg
-        assert call_args == ["orbctl", "run", "-m", "test-vm", "ls 'path with spaces'"]
+        assert call_args == [
+            "orbctl",
+            "run",
+            "-m",
+            "test-vm",
+            "sh",
+            "-c",
+            "ls 'path with spaces'",
+        ]
