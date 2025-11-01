@@ -19,6 +19,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.6.0] - 2025-11-01
+
+### Added
+
+- Add sudo support to `put_file()` for uploading files to protected locations
+- Add sudo support to `get_file()` for downloading files from protected locations
+- Add `mode` parameter to `put_file()` for setting custom file permissions
+- Add 18 new comprehensive unit tests for file operations and coverage improvements
+
+### Changed
+
+- File operations now use two-stage approach with temp files when sudo is required
+- Test coverage improved from 87% to 93% with low-effort coverage tests
+- Total test count increased to 60 tests (all passing)
+
+### Fixed
+
+- File operations now handle permission errors gracefully with detailed logging
+- Temp file cleanup failures no longer cause operations to fail
+
 ## [0.5.0] - 2025-11-01
 
 ### Added
@@ -139,7 +159,8 @@ Initial public release of PyInfra OrbStack Connector.
 - VM creation timeout handling with proper string matching
 - Worker VM reuse for 40% faster test execution
 
-[Unreleased]: https://github.com/elazar/pyinfra-orbstack/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/elazar/pyinfra-orbstack/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.2.0...v0.3.0

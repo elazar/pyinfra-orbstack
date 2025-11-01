@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pyinfra-orbstack"
-version = "0.5.0"
+version = "0.6.0"
 description = "PyInfra connector for OrbStack VM and container management"
 readme = "README.md"
 license = {text = "MIT"}
