@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
 name = "pyinfra-orbstack"
-version = "0.7.0"
+dynamic = ["version"]
 description = "PyInfra connector for OrbStack VM and container management"
 readme = "README.md"
 license = {text = "MIT"}
@@ -52,6 +52,8 @@ dev = [
     "black>=23.0.0",
     "build>=1.0.0",
     "flake8>=6.0.0",
+    "hatch-vcs>=0.5.0",
+    "hatchling>=1.27.0",
     "mypy>=1.0.0",
     "pre-commit>=3.0.0",
     "pytest-benchmark>=5.1.0",
@@ -75,6 +77,12 @@ Changelog = "https://github.com/elazar/pyinfra-orbstack/blob/main/CHANGELOG.md"
 
 [project.entry-points."pyinfra.connectors"]
 orbstack = "pyinfra_orbstack.connector:OrbStackConnector"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/pyinfra_orbstack/_version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pyinfra_orbstack"]
