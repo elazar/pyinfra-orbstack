@@ -379,7 +379,7 @@ class OrbStackConnector(BaseConnector):
         **arguments: Any,
     ) -> bool:
         """
-        Upload a file to OrbStack VM.
+        Upload a file to OrbStack VM with sudo support.
 
         Args:
             filename_or_io: Local file path or IO object
@@ -387,7 +387,7 @@ class OrbStackConnector(BaseConnector):
             remote_temp_filename: Ignored for OrbStack
             print_output: Whether to print output
             print_input: Whether to print input
-            **arguments: Additional arguments
+            **arguments: Additional arguments (sudo, sudo_user, mode)
 
         Returns:
             bool: Upload success status
@@ -395,17 +395,86 @@ class OrbStackConnector(BaseConnector):
         try:
             vm_name = self.host.data.get("vm_name")
             if not vm_name:
+                print("Error: VM name not found in host data")
                 return False
 
-            # Use orbctl push to upload file
-            subprocess.run(
-                ["orbctl", "push", "-m", vm_name, filename_or_io, remote_filename],
-                check=True,
-            )
-            return True
+            sudo = arguments.get("sudo", False)
+            sudo_user = arguments.get("sudo_user")
+            mode = arguments.get("mode")  # Custom file permissions (e.g., "644", "755")
+
+            if sudo:
+                import os
+
+                # Generate unique temp filename
+                temp_remote = f"/tmp/pyinfra_orbstack_{os.urandom(8).hex()}"
+
+                if print_output:
+                    print(f"Uploading file to temp location: {temp_remote}")
+
+                # Upload to temp location (user-accessible)
+                try:
+                    subprocess.run(
+                        ["orbctl", "push", "-m", vm_name, filename_or_io, temp_remote],
+                        check=True,
+                    )
+                except subprocess.CalledProcessError as e:
+                    print(f"Error uploading file to temp location: {e}")
+                    return False
+
+                # Build sudo mv command
+                if sudo_user:
+                    mv_cmd = f"sudo -H -u {sudo_user} mv {shlex.quote(temp_remote)} {shlex.quote(remote_filename)}"
+                else:
+                    mv_cmd = f"sudo -H mv {shlex.quote(temp_remote)} {shlex.quote(remote_filename)}"
+
+                if print_output:
+                    print(
+                        f"Moving file to final destination with sudo: {remote_filename}"
+                    )
+
+                # Execute move with sudo
+                success, output = self.run_shell_command(mv_cmd)
+
+                if not success:
+                    print(f"Error moving file to {remote_filename}: {output.stderr}")
+                    # Try to clean up temp file
+                    cleanup_cmd = f"rm -f {shlex.quote(temp_remote)}"
+                    self.run_shell_command(cleanup_cmd)
+                    return False
+
+                # Set custom permissions if specified
+                if mode:
+                    if sudo_user:
+                        chmod_cmd = f"sudo -H -u {sudo_user} chmod {mode} {shlex.quote(remote_filename)}"
+                    else:
+                        chmod_cmd = (
+                            f"sudo -H chmod {mode} {shlex.quote(remote_filename)}"
+                        )
+
+                    if print_output:
+                        print(f"Setting permissions: {mode}")
+
+                    perm_success, perm_output = self.run_shell_command(chmod_cmd)
+                    if not perm_success:
+                        print(
+                            f"Warning: Failed to set permissions {mode}: {perm_output.stderr}"
+                        )
+                        # Don't fail the overall operation if permissions fail
+
+                return True
+            else:
+                # Normal upload without sudo
+                subprocess.run(
+                    ["orbctl", "push", "-m", vm_name, filename_or_io, remote_filename],
+                    check=True,
+                )
+                return True
 
         except subprocess.CalledProcessError as e:
             print(f"Error uploading file to VM {vm_name}: {e}")
+            return False
+        except Exception as e:
+            print(f"Unexpected error uploading file: {e}")
             return False
 
     def get_file(
@@ -418,7 +487,7 @@ class OrbStackConnector(BaseConnector):
         **arguments: Any,
     ) -> bool:
         """
-        Download a file from OrbStack VM.
+        Download a file from OrbStack VM with sudo support.
 
         Args:
             remote_filename: Remote file path
@@ -426,7 +495,7 @@ class OrbStackConnector(BaseConnector):
             remote_temp_filename: Ignored for OrbStack
             print_output: Whether to print output
             print_input: Whether to print input
-            **arguments: Additional arguments
+            **arguments: Additional arguments (sudo, sudo_user)
 
         Returns:
             bool: Download success status
@@ -434,15 +503,84 @@ class OrbStackConnector(BaseConnector):
         try:
             vm_name = self.host.data.get("vm_name")
             if not vm_name:
+                print("Error: VM name not found in host data")
                 return False
 
-            # Use orbctl pull to download file
-            subprocess.run(
-                ["orbctl", "pull", "-m", vm_name, remote_filename, filename_or_io],
-                check=True,
-            )
-            return True
+            sudo = arguments.get("sudo", False)
+            sudo_user = arguments.get("sudo_user")
+
+            if sudo:
+                import os
+
+                # Generate unique temp filename
+                temp_remote = f"/tmp/pyinfra_orbstack_{os.urandom(8).hex()}"
+
+                if print_output:
+                    print(f"Copying file to temp location with sudo: {temp_remote}")
+
+                # Copy to temp location with sudo
+                if sudo_user:
+                    cp_cmd = f"sudo -H -u {sudo_user} cp {shlex.quote(remote_filename)} {shlex.quote(temp_remote)}"
+                else:
+                    cp_cmd = f"sudo -H cp {shlex.quote(remote_filename)} {shlex.quote(temp_remote)}"
+
+                success, output = self.run_shell_command(cp_cmd)
+                if not success:
+                    print(f"Error copying file from {remote_filename}: {output.stderr}")
+                    return False
+
+                # Make temp file readable (in case source had restrictive permissions)
+                chmod_cmd = f"sudo -H chmod 644 {shlex.quote(temp_remote)}"
+                if print_output:
+                    print("Making temp file readable")
+
+                chmod_success, chmod_output = self.run_shell_command(chmod_cmd)
+                if not chmod_success:
+                    print(
+                        f"Warning: Failed to make temp file readable: {chmod_output.stderr}"
+                    )
+                    # Try to continue anyway
+
+                if print_output:
+                    print(f"Downloading from temp location: {temp_remote}")
+
+                # Download from temp location
+                try:
+                    subprocess.run(
+                        ["orbctl", "pull", "-m", vm_name, temp_remote, filename_or_io],
+                        check=True,
+                    )
+                except subprocess.CalledProcessError as e:
+                    print(f"Error downloading file from temp location: {e}")
+                    # Clean up temp file before returning
+                    rm_cmd = f"sudo -H rm -f {shlex.quote(temp_remote)}"
+                    self.run_shell_command(rm_cmd)
+                    return False
+
+                # Clean up temp file
+                if print_output:
+                    print("Cleaning up temp file")
+
+                rm_cmd = f"sudo -H rm -f {shlex.quote(temp_remote)}"
+                rm_success, rm_output = self.run_shell_command(rm_cmd)
+                if not rm_success:
+                    print(
+                        f"Warning: Failed to clean up temp file {temp_remote}: {rm_output.stderr}"
+                    )
+                    # Don't fail the overall operation if cleanup fails
+
+                return True
+            else:
+                # Normal download without sudo
+                subprocess.run(
+                    ["orbctl", "pull", "-m", vm_name, remote_filename, filename_or_io],
+                    check=True,
+                )
+                return True
 
         except subprocess.CalledProcessError as e:
             print(f"Error downloading file from VM {vm_name}: {e}")
+            return False
+        except Exception as e:
+            print(f"Unexpected error downloading file: {e}")
             return False

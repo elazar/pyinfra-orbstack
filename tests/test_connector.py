@@ -707,6 +707,225 @@ class TestOrbStackConnector(TestCase):
 
             assert not success
 
+    def test_put_file_with_sudo(self):
+        """Test file upload with sudo."""
+        with (
+            patch("subprocess.run") as mock_run,
+            patch.object(self.connector, "run_shell_command") as mock_shell,
+        ):
+            # Mock successful upload to temp location
+            mock_run.return_value.returncode = 0
+
+            # Mock successful sudo mv
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stderr = ""
+            mock_shell.return_value = (True, mock_result)
+
+            success = self.connector.put_file("local.txt", "/etc/config.txt", sudo=True)
+
+            assert success
+
+            # Verify upload to temp location
+            assert mock_run.call_count == 1
+            push_call = mock_run.call_args[0][0]
+            assert push_call[0:4] == ["orbctl", "push", "-m", "test-vm"]
+            assert push_call[4] == "local.txt"
+            assert push_call[5].startswith("/tmp/pyinfra_orbstack_")
+
+            # Verify sudo mv was called
+            assert mock_shell.call_count == 1
+            mv_cmd = mock_shell.call_args[0][0]
+            assert "sudo -H mv" in mv_cmd
+            assert "/etc/config.txt" in mv_cmd
+
+    def test_put_file_with_sudo_and_user(self):
+        """Test file upload with sudo and sudo_user."""
+        with (
+            patch("subprocess.run") as mock_run,
+            patch.object(self.connector, "run_shell_command") as mock_shell,
+        ):
+            # Mock successful upload to temp location
+            mock_run.return_value.returncode = 0
+
+            # Mock successful sudo mv
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stderr = ""
+            mock_shell.return_value = (True, mock_result)
+
+            success = self.connector.put_file(
+                "local.txt",
+                "/home/postgres/config.txt",
+                sudo=True,
+                sudo_user="postgres",
+            )
+
+            assert success
+
+            # Verify sudo -u was used
+            mv_cmd = mock_shell.call_args_list[0][0][0]
+            assert "sudo -H -u postgres mv" in mv_cmd
+
+    def test_put_file_with_sudo_and_mode(self):
+        """Test file upload with sudo and custom permissions."""
+        with (
+            patch("subprocess.run") as mock_run,
+            patch.object(self.connector, "run_shell_command") as mock_shell,
+        ):
+            # Mock successful upload
+            mock_run.return_value.returncode = 0
+
+            # Mock successful sudo mv and chmod
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stderr = ""
+            mock_shell.return_value = (True, mock_result)
+
+            success = self.connector.put_file(
+                "script.sh", "/usr/local/bin/script.sh", sudo=True, mode="755"
+            )
+
+            assert success
+
+            # Verify both mv and chmod were called
+            assert mock_shell.call_count == 2
+            mv_cmd = mock_shell.call_args_list[0][0][0]
+            chmod_cmd = mock_shell.call_args_list[1][0][0]
+
+            assert "sudo -H mv" in mv_cmd
+            assert "sudo -H chmod 755" in chmod_cmd
+
+    def test_put_file_with_sudo_mv_fails(self):
+        """Test file upload when sudo mv fails."""
+        with (
+            patch("subprocess.run") as mock_run,
+            patch.object(self.connector, "run_shell_command") as mock_shell,
+        ):
+            # Mock successful upload to temp
+            mock_run.return_value.returncode = 0
+
+            # Mock failed sudo mv, then successful cleanup
+            mock_shell.side_effect = [
+                (False, Mock(stderr="Permission denied")),  # mv fails
+                (True, Mock(stderr="")),  # cleanup succeeds
+            ]
+
+            success = self.connector.put_file("local.txt", "/etc/config.txt", sudo=True)
+
+            assert not success
+
+            # Verify cleanup was called
+            assert mock_shell.call_count == 2
+            cleanup_cmd = mock_shell.call_args_list[1][0][0]
+            assert "rm -f" in cleanup_cmd
+
+    def test_get_file_with_sudo(self):
+        """Test file download with sudo."""
+        with (
+            patch("subprocess.run") as mock_run,
+            patch.object(self.connector, "run_shell_command") as mock_shell,
+        ):
+            # Mock successful sudo cp and chmod
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stderr = ""
+            mock_shell.side_effect = [
+                (True, mock_result),  # cp
+                (True, mock_result),  # chmod
+                (True, mock_result),  # rm
+            ]
+
+            # Mock successful pull
+            mock_run.return_value.returncode = 0
+
+            success = self.connector.get_file("/etc/shadow", "local_shadow", sudo=True)
+
+            assert success
+
+            # Verify sudo cp was called
+            cp_cmd = mock_shell.call_args_list[0][0][0]
+            assert "sudo -H cp" in cp_cmd
+            assert "/etc/shadow" in cp_cmd
+
+            # Verify pull from temp location
+            assert mock_run.call_count == 1
+            pull_call = mock_run.call_args[0][0]
+            assert pull_call[0:4] == ["orbctl", "pull", "-m", "test-vm"]
+            assert pull_call[4].startswith("/tmp/pyinfra_orbstack_")
+            assert pull_call[5] == "local_shadow"
+
+            # Verify cleanup
+            rm_cmd = mock_shell.call_args_list[2][0][0]
+            assert "sudo -H rm -f" in rm_cmd
+
+    def test_get_file_with_sudo_and_user(self):
+        """Test file download with sudo and sudo_user."""
+        with (
+            patch("subprocess.run") as mock_run,
+            patch.object(self.connector, "run_shell_command") as mock_shell,
+        ):
+            # Mock successful operations
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stderr = ""
+            mock_shell.return_value = (True, mock_result)
+
+            # Mock successful pull
+            mock_run.return_value.returncode = 0
+
+            success = self.connector.get_file(
+                "/var/lib/postgresql/data/pg_hba.conf",
+                "pg_hba.conf",
+                sudo=True,
+                sudo_user="postgres",
+            )
+
+            assert success
+
+            # Verify sudo -u was used
+            cp_cmd = mock_shell.call_args_list[0][0][0]
+            assert "sudo -H -u postgres cp" in cp_cmd
+
+    def test_get_file_with_sudo_cp_fails(self):
+        """Test file download when sudo cp fails."""
+        with patch.object(self.connector, "run_shell_command") as mock_shell:
+            # Mock failed sudo cp
+            mock_shell.return_value = (False, Mock(stderr="No such file"))
+
+            success = self.connector.get_file(
+                "/etc/nonexistent", "local_file", sudo=True
+            )
+
+            assert not success
+
+            # Verify only cp was attempted (no pull or cleanup)
+            assert mock_shell.call_count == 1
+
+    def test_get_file_with_sudo_pull_fails(self):
+        """Test file download when pull from temp fails."""
+        with (
+            patch("subprocess.run") as mock_run,
+            patch.object(self.connector, "run_shell_command") as mock_shell,
+        ):
+            # Mock successful sudo cp and chmod
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stderr = ""
+            mock_shell.return_value = (True, mock_result)
+
+            # Mock failed pull
+            mock_run.side_effect = subprocess.CalledProcessError(1, ["orbctl", "pull"])
+
+            success = self.connector.get_file("/etc/config", "local_config", sudo=True)
+
+            assert not success
+
+            # Verify cleanup was still attempted
+            assert mock_shell.call_count == 3  # cp, chmod, rm
+            rm_cmd = mock_shell.call_args_list[2][0][0]
+            assert "sudo -H rm -f" in rm_cmd
+
     def test_get_file_success(self):
         """Test successful file download."""
         with patch("subprocess.run") as mock_run:
@@ -763,6 +982,213 @@ class TestOrbStackConnector(TestCase):
                 self.connector._execute_with_retry(
                     ["orbctl", "create", "ubuntu:22.04", "test-vm"], max_retries=1
                 )
+
+    def test_execute_with_retry_success_first_attempt(self):
+        """Test successful execution on first attempt (no retries needed)."""
+        with patch("subprocess.run") as mock_run:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = "success"
+            mock_result.stderr = ""
+            mock_run.return_value = mock_result
+
+            result = self.connector._execute_with_retry(
+                ["orbctl", "exec", "-m", "test-vm", "echo", "test"], max_retries=3
+            )
+
+            assert result.returncode == 0
+            assert result.stdout == "success"
+            assert mock_run.call_count == 1  # Only called once
+
+    def test_execute_with_retry_timeout_then_success(self):
+        """Test retry logic when command times out first, then succeeds."""
+        with patch("subprocess.run") as mock_run, patch("time.sleep"):
+            # First call times out, second call succeeds
+            mock_success = Mock()
+            mock_success.returncode = 0
+            mock_success.stdout = "success"
+            mock_success.stderr = ""
+
+            mock_run.side_effect = [
+                subprocess.TimeoutExpired(["cmd"], 30),
+                mock_success,
+            ]
+
+            result = self.connector._execute_with_retry(
+                ["orbctl", "exec", "-m", "test-vm", "slow-command"],
+                max_retries=2,
+                timeout=30,
+            )
+
+            assert result.returncode == 0
+            assert mock_run.call_count == 2
+
+    def test_execute_with_retry_exception_then_success(self):
+        """Test retry logic when command raises exception first, then succeeds."""
+        with patch("subprocess.run") as mock_run, patch("time.sleep"):
+            # First call raises exception, second call succeeds
+            mock_success = Mock()
+            mock_success.returncode = 0
+            mock_success.stdout = "success"
+            mock_success.stderr = ""
+
+            mock_run.side_effect = [
+                Exception("Temporary error"),
+                mock_success,
+            ]
+
+            result = self.connector._execute_with_retry(
+                ["orbctl", "exec", "-m", "test-vm", "flaky-command"], max_retries=2
+            )
+
+            assert result.returncode == 0
+            assert mock_run.call_count == 2
+
+    def test_make_names_data_arm64_architecture(self):
+        """Test VM with ARM64 architecture gets correct group."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value.stdout = json.dumps(
+                [
+                    {
+                        "name": "test-vm-arm",
+                        "state": "running",
+                        "image": {
+                            "arch": "arm64",
+                            "distro": "ubuntu",
+                            "version": "22.04",
+                        },
+                    }
+                ]
+            )
+
+            result = list(self.connector.make_names_data())
+
+            assert len(result) == 1
+            name, data, groups = result[0]
+            assert name == "test-vm-arm"
+            assert "orbstack_arm64" in groups
+            assert "orbstack_amd64" not in groups
+
+    def test_make_names_data_amd64_architecture(self):
+        """Test VM with AMD64 architecture gets correct group."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value.stdout = json.dumps(
+                [
+                    {
+                        "name": "test-vm-amd",
+                        "state": "running",
+                        "image": {"arch": "amd64", "distro": "debian", "version": "11"},
+                    }
+                ]
+            )
+
+            result = list(self.connector.make_names_data())
+
+            assert len(result) == 1
+            name, data, groups = result[0]
+            assert name == "test-vm-amd"
+            assert "orbstack_amd64" in groups
+            assert "orbstack_arm64" not in groups
+
+    def test_make_names_data_unknown_distro(self):
+        """Test VM with unknown distro falls through to else clause."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value.stdout = json.dumps(
+                [
+                    {
+                        "name": "test-vm-other",
+                        "state": "running",
+                        "image": {
+                            "arch": "arm64",
+                            "distro": "some-other-distro",
+                            "version": "1.0",
+                        },
+                    }
+                ]
+            )
+
+            result = list(self.connector.make_names_data())
+
+            assert len(result) == 1
+            name, data, groups = result[0]
+            assert name == "test-vm-other"
+            # Should still get base groups even with unknown distro
+            assert "orbstack" in groups
+            assert "orbstack_running" in groups
+
+    def test_put_file_upload_to_temp_fails(self):
+        """Test handling of upload failure to temp location with sudo."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = subprocess.CalledProcessError(1, ["orbctl", "push"])
+
+            success = self.connector.put_file("local.txt", "/etc/config.txt", sudo=True)
+
+            assert not success
+
+    def test_put_file_chmod_fails_warning(self):
+        """Test that chmod failure doesn't fail the overall operation."""
+        with (
+            patch("subprocess.run") as mock_run,
+            patch.object(self.connector, "run_shell_command") as mock_shell,
+        ):
+            # Mock successful upload and mv
+            mock_run.return_value.returncode = 0
+
+            # Mock successful mv, failed chmod
+            mock_shell.side_effect = [
+                (True, Mock(stderr="")),  # mv succeeds
+                (False, Mock(stderr="chmod: permission denied")),  # chmod fails
+            ]
+
+            success = self.connector.put_file(
+                "script.sh", "/usr/local/bin/script.sh", sudo=True, mode="755"
+            )
+
+            # Should still succeed even though chmod failed
+            assert success
+            assert mock_shell.call_count == 2
+
+    def test_get_file_chmod_temp_fails_warning(self):
+        """Test that chmod failure on temp file doesn't fail the operation."""
+        with (
+            patch("subprocess.run") as mock_run,
+            patch.object(self.connector, "run_shell_command") as mock_shell,
+        ):
+            # Mock successful cp, failed chmod, successful pull and rm
+            mock_shell.side_effect = [
+                (True, Mock(stderr="")),  # cp succeeds
+                (False, Mock(stderr="chmod failed")),  # chmod fails
+                (True, Mock(stderr="")),  # rm succeeds
+            ]
+
+            # Mock successful pull
+            mock_run.return_value.returncode = 0
+
+            success = self.connector.get_file("/etc/shadow", "local_shadow", sudo=True)
+
+            # Should still succeed even though chmod failed
+            assert success
+
+    def test_get_file_cleanup_fails_warning(self):
+        """Test that cleanup failure is logged but doesn't fail the operation."""
+        with (
+            patch("subprocess.run") as mock_run,
+            patch.object(self.connector, "run_shell_command") as mock_shell,
+        ):
+            # Mock successful operations except cleanup
+            mock_shell.side_effect = [
+                (True, Mock(stderr="")),  # cp succeeds
+                (True, Mock(stderr="")),  # chmod succeeds
+                (False, Mock(stderr="rm failed")),  # rm fails
+            ]
+
+            # Mock successful pull
+            mock_run.return_value.returncode = 0
+
+            success = self.connector.get_file("/etc/config", "local_config", sudo=True)
+
+            # Should still succeed even though cleanup failed
+            assert success
 
     def test_run_shell_command_unexpected_exception(self):
         """Test handling of unexpected exceptions in run_shell_command."""
