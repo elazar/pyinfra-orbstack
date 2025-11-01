@@ -286,10 +286,13 @@ class OrbStackConnector(BaseConnector):
             if isinstance(command, str):
                 # Apply sudo if requested
                 if sudo:
+                    # Disable bash history expansion (+H) to handle ! in commands
+                    # Use bash instead of sh to support the +H option
+                    quoted_command = shlex.quote(command)
                     if sudo_user:
-                        command = f"sudo -H -u {sudo_user} sh -c {shlex.quote(command)}"
+                        command = f"sudo -H -u {sudo_user} bash +H -c {quoted_command}"
                     else:
-                        command = f"sudo -H sh -c {shlex.quote(command)}"
+                        command = f"sudo -H bash +H -c {quoted_command}"
 
                 # Plain strings need to be wrapped in sh -c for shell interpretation
                 cmd.extend(["sh", "-c", command])
@@ -302,11 +305,14 @@ class OrbStackConnector(BaseConnector):
                     command_str = bits[0]
                     if sudo:
                         # Quote and wrap properly for sudo
+                        # Disable bash history expansion (+H) to handle ! in commands
                         quoted_command = shlex.quote(command_str)
                         if sudo_user:
-                            full_cmd = f"sudo -H -u {sudo_user} sh -c {quoted_command}"
+                            full_cmd = (
+                                f"sudo -H -u {sudo_user} bash +H -c {quoted_command}"
+                            )
                         else:
-                            full_cmd = f"sudo -H sh -c {quoted_command}"
+                            full_cmd = f"sudo -H bash +H -c {quoted_command}"
                         cmd.extend(["sh", "-c", full_cmd])
                     else:
                         # No sudo, just wrap in sh -c for shell features
