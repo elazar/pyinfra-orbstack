@@ -418,6 +418,270 @@ class TestOrbStackConnector(TestCase):
                 "cd /tmp && pwd",
             ]
 
+    def test_run_shell_command_with_sudo_string_command(self):
+        """Test command execution with sudo flag (string command)."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = ""
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # String command with sudo
+            success, output = self.connector.run_shell_command(
+                "rm -f /var/lib/dpkg/lock", sudo=True
+            )
+
+            assert success
+
+            # Verify sudo was applied with proper quoting
+            call_args = mock_execute.call_args[0][0]
+            assert call_args == [
+                "orbctl",
+                "run",
+                "-m",
+                "test-vm",
+                "sh",
+                "-c",
+                "sudo -H sh -c 'rm -f /var/lib/dpkg/lock'",
+            ]
+
+    def test_run_shell_command_with_sudo_and_sudo_user_string_command(self):
+        """Test command execution with sudo and sudo_user (string command)."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = "postgres\n"
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # String command with sudo and sudo_user
+            success, output = self.connector.run_shell_command(
+                "whoami", sudo=True, sudo_user="postgres"
+            )
+
+            assert success
+
+            # Verify sudo with user was applied
+            # Note: shlex.quote() doesn't add quotes around simple alphanumeric strings
+            call_args = mock_execute.call_args[0][0]
+            assert call_args == [
+                "orbctl",
+                "run",
+                "-m",
+                "test-vm",
+                "sh",
+                "-c",
+                "sudo -H -u postgres sh -c whoami",
+            ]
+
+    def test_run_shell_command_with_sudo_stringcommand_multibit(self):
+        """Test multi-bit StringCommand with sudo."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = ""
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # Multi-bit StringCommand with sudo
+            cmd = StringCommand("sh", "-c", "apt-get update")
+            success, output = self.connector.run_shell_command(cmd, sudo=True)
+
+            assert success
+
+            # Verify sudo was prepended to the bits
+            call_args = mock_execute.call_args[0][0]
+            assert call_args == [
+                "orbctl",
+                "run",
+                "-m",
+                "test-vm",
+                "sudo",
+                "-H",
+                "sh",
+                "-c",
+                "apt-get update",
+            ]
+
+    def test_run_shell_command_with_sudo_stringcommand_singlebit(self):
+        """Test single-bit StringCommand with sudo."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = ""
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # Single-bit StringCommand with sudo
+            cmd = StringCommand("apt-get update")
+            success, output = self.connector.run_shell_command(cmd, sudo=True)
+
+            assert success
+
+            # Verify sudo was prepended, then wrapped in sh -c
+            # The implementation applies sudo first, creating ["sudo", "-H", "apt-get update"]
+            # Then wraps single-bit in sh -c, but now it's multi-bit so no sh -c wrapping
+            call_args = mock_execute.call_args[0][0]
+            assert call_args == [
+                "orbctl",
+                "run",
+                "-m",
+                "test-vm",
+                "sudo",
+                "-H",
+                "apt-get update",
+            ]
+
+    def test_run_shell_command_with_sudo_and_sudo_user_stringcommand(self):
+        """Test StringCommand with sudo and sudo_user."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = ""
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # Multi-bit StringCommand with sudo and sudo_user
+            cmd = StringCommand("sh", "-c", "psql -c 'SELECT version()'")
+            success, output = self.connector.run_shell_command(
+                cmd, sudo=True, sudo_user="postgres"
+            )
+
+            assert success
+
+            # Verify sudo with user was prepended
+            call_args = mock_execute.call_args[0][0]
+            assert call_args == [
+                "orbctl",
+                "run",
+                "-m",
+                "test-vm",
+                "sudo",
+                "-H",
+                "-u",
+                "postgres",
+                "sh",
+                "-c",
+                "psql -c 'SELECT version()'",
+            ]
+
+    def test_run_shell_command_with_sudo_list_command(self):
+        """Test list command with sudo."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = ""
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # List command with sudo
+            success, output = self.connector.run_shell_command(
+                ["apt-get", "update"], sudo=True
+            )
+
+            assert success
+
+            # Verify sudo was prepended to list
+            call_args = mock_execute.call_args[0][0]
+            assert call_args == [
+                "orbctl",
+                "run",
+                "-m",
+                "test-vm",
+                "sudo",
+                "-H",
+                "apt-get",
+                "update",
+            ]
+
+    def test_run_shell_command_with_sudo_and_sudo_user_list_command(self):
+        """Test list command with sudo and sudo_user."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = ""
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # List command with sudo and sudo_user
+            success, output = self.connector.run_shell_command(
+                ["systemctl", "restart", "nginx"], sudo=True, sudo_user="root"
+            )
+
+            assert success
+
+            # Verify sudo with user was prepended
+            call_args = mock_execute.call_args[0][0]
+            assert call_args == [
+                "orbctl",
+                "run",
+                "-m",
+                "test-vm",
+                "sudo",
+                "-H",
+                "-u",
+                "root",
+                "systemctl",
+                "restart",
+                "nginx",
+            ]
+
+    def test_run_shell_command_with_sudo_special_characters(self):
+        """Test sudo with command containing special characters."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = ""
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # Command with special characters and sudo
+            success, output = self.connector.run_shell_command(
+                "echo 'test with spaces' > /etc/config", sudo=True
+            )
+
+            assert success
+
+            # Verify proper quoting with sudo
+            call_args = mock_execute.call_args[0][0]
+            assert call_args == [
+                "orbctl",
+                "run",
+                "-m",
+                "test-vm",
+                "sh",
+                "-c",
+                "sudo -H sh -c 'echo '\"'\"'test with spaces'\"'\"' > /etc/config'",
+            ]
+
+    def test_run_shell_command_without_sudo(self):
+        """Test that commands without sudo flag work normally."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = "test\n"
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # Command without sudo (default behavior)
+            success, output = self.connector.run_shell_command("echo test")
+
+            assert success
+
+            # Verify no sudo was applied
+            call_args = mock_execute.call_args[0][0]
+            assert call_args == [
+                "orbctl",
+                "run",
+                "-m",
+                "test-vm",
+                "sh",
+                "-c",
+                "echo test",
+            ]
+            assert "sudo" not in call_args
+
     def test_put_file_success(self):
         """Test successful file upload."""
         with patch("subprocess.run") as mock_run:

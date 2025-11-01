@@ -6,6 +6,7 @@ command execution, and file transfer operations.
 """
 
 import json
+import shlex
 import subprocess
 import time
 from collections.abc import Generator
@@ -244,13 +245,13 @@ class OrbStackConnector(BaseConnector):
         **arguments: Any,
     ) -> tuple[bool, CommandOutput]:
         """
-        Execute a shell command in OrbStack VM.
+        Execute a shell command in OrbStack VM with sudo support.
 
         Args:
             command: Command to execute
             print_output: Whether to print command output
             print_input: Whether to print command input
-            **arguments: Additional command arguments
+            **arguments: Additional command arguments (sudo, sudo_user, etc.)
 
         Returns:
             tuple: (success, CommandOutput)
@@ -261,6 +262,10 @@ class OrbStackConnector(BaseConnector):
                 return False, CommandOutput(
                     [OutputLine("stderr", "VM name not found in host data")]
                 )
+
+            # Extract sudo-related arguments
+            sudo = arguments.get("sudo", False)
+            sudo_user = arguments.get("sudo_user")
 
             # Build orbctl run command
             cmd = ["orbctl", "run", "-m", vm_name]
@@ -277,11 +282,25 @@ class OrbStackConnector(BaseConnector):
 
             # Add the actual command - handle str, StringCommand, and lists
             if isinstance(command, str):
+                # Apply sudo if requested
+                if sudo:
+                    if sudo_user:
+                        command = f"sudo -H -u {sudo_user} sh -c {shlex.quote(command)}"
+                    else:
+                        command = f"sudo -H sh -c {shlex.quote(command)}"
+
                 # Plain strings need to be wrapped in sh -c for shell interpretation
                 cmd.extend(["sh", "-c", command])
             elif hasattr(command, "bits"):
                 # StringCommand.bits contains individual arguments
                 bits = [str(bit) for bit in command.bits]
+
+                # Apply sudo if requested
+                if sudo:
+                    if sudo_user:
+                        bits = ["sudo", "-H", "-u", sudo_user] + bits
+                    else:
+                        bits = ["sudo", "-H"] + bits
 
                 # If it's a single-bit command, wrap it in sh -c for shell features
                 if len(bits) == 1:
@@ -291,7 +310,16 @@ class OrbStackConnector(BaseConnector):
                     cmd.extend(bits)
             else:
                 # Handle plain lists or other iterables
-                cmd.extend([str(arg) for arg in command])
+                args = [str(arg) for arg in command]
+
+                # Apply sudo if requested
+                if sudo:
+                    if sudo_user:
+                        args = ["sudo", "-H", "-u", sudo_user] + args
+                    else:
+                        args = ["sudo", "-H"] + args
+
+                cmd.extend(args)
 
             # Determine if this is a network-heavy operation
             command_str = str(command).lower()
