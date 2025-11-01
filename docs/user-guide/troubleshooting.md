@@ -6,12 +6,70 @@ This guide helps you diagnose and resolve common issues when using the PyInfra O
 
 ## Table of Contents
 
+- [Runtime Warnings](#runtime-warnings)
 - [Installation Issues](#installation-issues)
 - [Connection Problems](#connection-problems)
 - [VM Creation Failures](#vm-creation-failures)
 - [Performance Issues](#performance-issues)
 - [Operation Failures](#operation-failures)
 - [Getting Help](#getting-help)
+
+## Runtime Warnings
+
+### Gevent Threading Warnings (Python 3.12)
+
+**Symptoms:**
+
+Repeated warnings during PyInfra operations:
+
+```
+Exception ignored in: <bound method _ForkHooks.after_fork_in_child of <gevent.threading._ForkHooks object at 0x...>>
+Traceback (most recent call last):
+  File ".../gevent/threading.py", line 398, in after_fork_in_child
+    assert not thread.is_alive()
+AssertionError:
+```
+
+**Diagnosis:**
+
+This is a known compatibility issue between:
+- Python 3.12's threading changes
+- Gevent 25.5.1's fork hooks
+- PyInfra's use of gevent monkey patching
+
+**Impact:**
+- **Non-blocking**: Operations complete successfully
+- **Cosmetic only**: No functional impact
+- **Not a connector bug**: Upstream compatibility issue
+
+**Solutions:**
+
+1. **Suppress the warnings** (Recommended):
+   ```bash
+   # Set environment variable
+   export PYTHONWARNINGS="ignore::AssertionError"
+
+   # Run PyInfra
+   pyinfra inventory.py deploy.py
+   ```
+
+2. **Use Python 3.11 instead**:
+   ```bash
+   # Using pyenv
+   pyenv install 3.11.10
+   pyenv local 3.11.10
+
+   # Verify
+   python --version  # Should show 3.11.x
+   ```
+
+3. **Wait for gevent fix**:
+   - Track: https://github.com/gevent/gevent/issues/2037
+   - Will be resolved in future gevent release
+
+**References:**
+- [ADR-0009: Gevent and Python 3.12 Compatibility](../adrs/0009-gevent-python312-compatibility.md)
+- [Known Limitations: Runtime Compatibility Issues](known-limitations.md#runtime-compatibility-issues)
 
 ## Installation Issues
 

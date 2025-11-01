@@ -6,10 +6,55 @@ This document consolidates known limitations of the PyInfra OrbStack connector, 
 
 ## Table of Contents
 
+- [Runtime Compatibility Issues](#runtime-compatibility-issues)
 - [OrbStack Limitations](#orbstack-limitations)
 - [PyInfra Architectural Constraints](#pyinfra-architectural-constraints)
 - [Connector Design Limitations](#connector-design-limitations)
 - [Workarounds](#workarounds)
+
+## Runtime Compatibility Issues
+
+These are known compatibility issues between dependencies that may affect runtime behavior.
+
+### Gevent Threading Warnings with Python 3.12
+
+**Issue:** When using Python 3.12 with PyInfra (which uses gevent), you may see repeated threading warnings:
+
+```
+Exception ignored in: <bound method _ForkHooks.after_fork_in_child of <gevent.threading._ForkHooks object at 0x...>>
+Traceback (most recent call last):
+  File ".../gevent/threading.py", line 398, in after_fork_in_child
+    assert not thread.is_alive()
+AssertionError:
+```
+
+**Root Cause:**
+- PyInfra uses `gevent.monkey.patch_all()` to enable concurrent operations
+- Python 3.12 changed threading internals
+- Gevent 25.5.1's fork hooks are not fully compatible with Python 3.12's threading
+
+**Impact:**
+- **Non-blocking**: These are warnings, not errors
+- Operations complete successfully despite the warnings
+- Visual noise in output, but no functional issues
+- **Connector is NOT affected**: This is an upstream compatibility issue
+
+**Workarounds:**
+
+1. **Suppress the warnings** (Recommended):
+   ```bash
+   export PYTHONWARNINGS="ignore::AssertionError"
+   ```
+
+2. **Use Python 3.11**:
+   ```bash
+   pyenv install 3.11.10
+   pyenv local 3.11.10
+   ```
+
+3. **Wait for gevent update**: Track [gevent issue #2037](https://github.com/gevent/gevent/issues/2037)
+
+**For more details:** See [ADR-0009: Gevent and Python 3.12 Compatibility](../adrs/0009-gevent-python312-compatibility.md)
 
 ## OrbStack Limitations
 

@@ -35,6 +35,7 @@ Examples:
 | [0005](0005-intelligent-retry-logic.md) | Intelligent Retry Logic for OrbStack Operations | Accepted | 2025-10-27 |
 | [0006](0006-operation-generator-pattern.md) | PyInfra Operation Generator Pattern with Command Builders | Accepted | 2025-10-27 |
 | [0007](0007-simple-logging-based-timing.md) | Simple Logging-Based Timing Over Complex Metrics Infrastructure | Accepted | 2025-10-28 |
+|| [0009](0009-gevent-python312-compatibility.md) | Gevent and Python 3.12 Compatibility | Accepted | 2025-11-01 |
 
 ## Creating a New ADR
 
