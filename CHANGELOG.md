@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.7.0] - 2025-11-01
+
+### Fixed
+
+- **CRITICAL**: Fixed sudo operations not working with PyInfra's underscore-prefixed arguments (`_sudo`, `_sudo_user`)
+- Fixed single-bit `StringCommand` sudo wrapping to prevent "command not found" errors with shell operators
+- All three methods (`run_shell_command()`, `put_file()`, `get_file()`) now check for both prefixed and non-prefixed argument versions
+
+### Changed
+
+- Single-bit StringCommand objects with sudo now wrap in `sh -c` before applying sudo for correct execution
+- Complex shell commands with operators (`||`, `&&`, pipes, timeouts) now work correctly with sudo
+
 ## [0.6.0] - 2025-11-01
 
 ### Added
@@ -159,7 +172,8 @@ Initial public release of PyInfra OrbStack Connector.
 - VM creation timeout handling with proper string matching
 - Worker VM reuse for 40% faster test execution
 
-[Unreleased]: https://github.com/elazar/pyinfra-orbstack/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/elazar/pyinfra-orbstack/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.3.0...v0.4.0
