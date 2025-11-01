@@ -434,14 +434,15 @@ class TestOrbStackConnector(TestCase):
 
             assert success
 
-            # Verify sudo was applied with proper quoting and bash +H
+            # Verify sudo was applied with proper quoting and bash +H for outer wrapper
             call_args = mock_execute.call_args[0][0]
             assert call_args == [
                 "orbctl",
                 "run",
                 "-m",
                 "test-vm",
-                "sh",
+                "bash",
+                "+H",
                 "-c",
                 "sudo -H bash +H -c 'rm -f /var/lib/dpkg/lock'",
             ]
@@ -462,7 +463,7 @@ class TestOrbStackConnector(TestCase):
 
             assert success
 
-            # Verify sudo with user was applied and bash +H is used
+            # Verify sudo with user was applied and bash +H is used for outer wrapper
             # Note: shlex.quote() doesn't add quotes around simple alphanumeric strings
             call_args = mock_execute.call_args[0][0]
             assert call_args == [
@@ -470,7 +471,8 @@ class TestOrbStackConnector(TestCase):
                 "run",
                 "-m",
                 "test-vm",
-                "sh",
+                "bash",
+                "+H",
                 "-c",
                 "sudo -H -u postgres bash +H -c whoami",
             ]
@@ -519,15 +521,16 @@ class TestOrbStackConnector(TestCase):
 
             assert success
 
-            # Verify single-bit command is wrapped in sh -c FIRST, then sudo wrapping with bash +H
-            # New behavior: sh -c wrapping happens before sudo, ensuring proper execution
+            # Verify single-bit command uses bash +H for outer wrapper with sudo
+            # New behavior: bash +H wrapping ensures history expansion is disabled
             call_args = mock_execute.call_args[0][0]
             assert call_args == [
                 "orbctl",
                 "run",
                 "-m",
                 "test-vm",
-                "sh",
+                "bash",
+                "+H",
                 "-c",
                 "sudo -H bash +H -c 'apt-get update'",
             ]
@@ -642,14 +645,15 @@ class TestOrbStackConnector(TestCase):
 
             assert success
 
-            # Verify proper quoting with sudo and bash +H
+            # Verify proper quoting with sudo and bash +H for outer wrapper
             call_args = mock_execute.call_args[0][0]
             assert call_args == [
                 "orbctl",
                 "run",
                 "-m",
                 "test-vm",
-                "sh",
+                "bash",
+                "+H",
                 "-c",
                 "sudo -H bash +H -c 'echo '\"'\"'test with spaces'\"'\"' > /etc/config'",
             ]
@@ -671,14 +675,15 @@ class TestOrbStackConnector(TestCase):
             assert success
             assert "MISSING" in str(output)
 
-            # Verify bash +H is used to disable history expansion
+            # Verify bash +H is used for outer wrapper to disable history expansion
             call_args = mock_execute.call_args[0][0]
             assert call_args == [
                 "orbctl",
                 "run",
                 "-m",
                 "test-vm",
-                "sh",
+                "bash",
+                "+H",
                 "-c",
                 "sudo -H bash +H -c '! test -e /etc/netplan/01-netcfg.yaml && echo MISSING'",
             ]
@@ -739,14 +744,15 @@ class TestOrbStackConnector(TestCase):
 
             assert success
 
-            # Verify bash +H is used for single-bit commands
+            # Verify bash +H is used for outer wrapper for single-bit commands
             call_args = mock_execute.call_args[0][0]
             assert call_args == [
                 "orbctl",
                 "run",
                 "-m",
                 "test-vm",
-                "sh",
+                "bash",
+                "+H",
                 "-c",
                 "sudo -H bash +H -c '! test -e /path/to/file && echo MISSING'",
             ]
@@ -769,14 +775,15 @@ class TestOrbStackConnector(TestCase):
 
             assert success
 
-            # Verify bash +H is used with sudo_user
+            # Verify bash +H is used for outer wrapper with sudo_user
             call_args = mock_execute.call_args[0][0]
             assert call_args == [
                 "orbctl",
                 "run",
                 "-m",
                 "test-vm",
-                "sh",
+                "bash",
+                "+H",
                 "-c",
                 "sudo -H -u postgres bash +H -c '! test -e /home/postgres/.profile && echo MISSING'",
             ]

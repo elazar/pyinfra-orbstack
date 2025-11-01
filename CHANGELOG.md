@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.9.0] - 2025-11-01
+
+### Fixed
+
+- **CRITICAL**: Fixed incorrect implementation of bash history expansion fix from v0.8.0. The previous fix wrapped `bash +H -c` commands in an additional `sh -c` layer, which defeated the purpose because the outer shell still interpreted `!` before passing to bash. Commands with sudo now correctly use `bash +H -c` as the outer shell wrapper, ensuring history expansion is disabled throughout the command execution chain. This fixes "command not found" errors when using `!` (logical negation) in commands with `_sudo=True`.
+
+### Added
+
+- Integration test (`test_connector_sudo_with_logical_negation`) that verifies the bash history expansion fix works correctly with actual VMs, ensuring commands with `!` execute properly when using sudo.
+
 ## [0.8.0] - 2025-11-01
 
 ### Fixed
@@ -178,7 +188,8 @@ Initial public release of PyInfra OrbStack Connector.
 - VM creation timeout handling with proper string matching
 - Worker VM reuse for 40% faster test execution
 
-[Unreleased]: https://github.com/elazar/pyinfra-orbstack/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/elazar/pyinfra-orbstack/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.5.0...v0.6.0

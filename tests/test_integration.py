@@ -411,6 +411,79 @@ class TestOrbStackIntegration:
             # Try to disconnect again (should still not raise exceptions)
             connector.disconnect()
 
+    def test_connector_sudo_with_logical_negation(self):
+        """
+        Integration test: Verify sudo commands with ! (logical negation) work correctly.
+
+        This tests the fix for the bash history expansion issue where commands
+        with ! were incorrectly wrapped in sh -c, causing "command not found" errors.
+
+        The fix ensures that bash +H is used as the outer shell wrapper to disable
+        history expansion throughout the entire command execution chain.
+        """
+        # Get actual VMs
+        vms = list(OrbStackConnector.make_names_data())
+
+        if vms:
+            vm_name = vms[0][0]
+            self.mock_host.data = {"vm_name": vm_name}
+
+            connector = OrbStackConnector(self.mock_state, self.mock_host)
+
+            # Test 1: File existence check with logical negation and sudo
+            # This should NOT produce "!: command not found" error
+            success, output = connector.run_shell_command(
+                "! test -e /nonexistent_file_test_12345 && echo MISSING", sudo=True
+            )
+            assert success is True, f"Command failed: {output.stderr}"
+            assert "MISSING" in output.stdout, "Expected 'MISSING' in output"
+            assert (
+                "command not found" not in output.stderr.lower()
+            ), "Should not have 'command not found' error with !"
+
+            # Test 2: Same command with sudo_user
+            success, output = connector.run_shell_command(
+                "! test -e /nonexistent_file_test_67890 && echo NOT_FOUND",
+                sudo=True,
+                sudo_user="root",
+            )
+            assert success is True, f"Command with sudo_user failed: {output.stderr}"
+            assert "NOT_FOUND" in output.stdout, "Expected 'NOT_FOUND' in output"
+            assert (
+                "command not found" not in output.stderr.lower()
+            ), "Should not have 'command not found' error with sudo_user"
+
+            # Test 3: Verify the fix - logical negation should work correctly
+            success, output = connector.run_shell_command(
+                "! false && echo SUCCESS", sudo=True
+            )
+            assert success is True, f"Logical negation failed: {output.stderr}"
+            assert "SUCCESS" in output.stdout, "Expected 'SUCCESS' in output"
+            assert (
+                "command not found" not in output.stderr.lower()
+            ), "Should not have 'command not found' error"
+
+            # Test 4: Complex command with logical operators
+            success, output = connector.run_shell_command(
+                "! test -d /nonexistent_dir_test && mkdir -p /tmp/test_dir_integration || echo EXISTS",
+                sudo=True,
+            )
+            assert success is True, f"Complex command failed: {output.stderr}"
+            # Verify no history expansion errors
+            assert (
+                "command not found" not in output.stderr.lower()
+            ), "Should not have 'command not found' error in complex command"
+
+            # Test 5: Test with actual file that exists (negation should return false)
+            success, output = connector.run_shell_command(
+                "! test -e /tmp && echo NOT_EXISTS || echo EXISTS", sudo=True
+            )
+            assert success is True, f"File existence check failed: {output.stderr}"
+            assert "EXISTS" in output.stdout, "Expected 'EXISTS' for /tmp directory"
+            assert (
+                "command not found" not in output.stderr.lower()
+            ), "Should not have 'command not found' error"
+
 
 class TestOrbStackIntegrationEdgeCases:
     """Test edge cases and error conditions in integration."""

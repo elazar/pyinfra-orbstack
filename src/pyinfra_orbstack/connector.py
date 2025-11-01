@@ -293,9 +293,11 @@ class OrbStackConnector(BaseConnector):
                         command = f"sudo -H -u {sudo_user} bash +H -c {quoted_command}"
                     else:
                         command = f"sudo -H bash +H -c {quoted_command}"
-
-                # Plain strings need to be wrapped in sh -c for shell interpretation
-                cmd.extend(["sh", "-c", command])
+                    # Pass bash command directly without additional shell wrapper
+                    cmd.extend(["bash", "+H", "-c", command])
+                else:
+                    # Plain strings need to be wrapped in sh -c for shell interpretation
+                    cmd.extend(["sh", "-c", command])
             elif hasattr(command, "bits"):
                 # StringCommand.bits contains individual arguments
                 bits = [str(bit) for bit in command.bits]
@@ -313,7 +315,8 @@ class OrbStackConnector(BaseConnector):
                             )
                         else:
                             full_cmd = f"sudo -H bash +H -c {quoted_command}"
-                        cmd.extend(["sh", "-c", full_cmd])
+                        # Pass bash command directly without additional shell wrapper
+                        cmd.extend(["bash", "+H", "-c", full_cmd])
                     else:
                         # No sudo, just wrap in sh -c for shell features
                         cmd.extend(["sh", "-c", command_str])
