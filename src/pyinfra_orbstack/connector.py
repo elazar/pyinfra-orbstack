@@ -264,8 +264,10 @@ class OrbStackConnector(BaseConnector):
                 )
 
             # Extract sudo-related arguments
-            sudo = arguments.get("sudo", False)
-            sudo_user = arguments.get("sudo_user")
+            # PyInfra passes arguments with underscore prefix (_sudo, _sudo_user)
+            # but we also check non-prefixed versions for compatibility
+            sudo = arguments.get("sudo", arguments.get("_sudo", False))
+            sudo_user = arguments.get("sudo_user", arguments.get("_sudo_user"))
 
             # Build orbctl run command
             cmd = ["orbctl", "run", "-m", vm_name]
@@ -295,18 +297,27 @@ class OrbStackConnector(BaseConnector):
                 # StringCommand.bits contains individual arguments
                 bits = [str(bit) for bit in command.bits]
 
-                # Apply sudo if requested
-                if sudo:
-                    if sudo_user:
-                        bits = ["sudo", "-H", "-u", sudo_user] + bits
-                    else:
-                        bits = ["sudo", "-H"] + bits
-
-                # If it's a single-bit command, wrap it in sh -c for shell features
+                # Handle single-bit commands (need sh -c wrapping)
                 if len(bits) == 1:
-                    cmd.extend(["sh", "-c", bits[0]])
+                    command_str = bits[0]
+                    if sudo:
+                        # Quote and wrap properly for sudo
+                        quoted_command = shlex.quote(command_str)
+                        if sudo_user:
+                            full_cmd = f"sudo -H -u {sudo_user} sh -c {quoted_command}"
+                        else:
+                            full_cmd = f"sudo -H sh -c {quoted_command}"
+                        cmd.extend(["sh", "-c", full_cmd])
+                    else:
+                        # No sudo, just wrap in sh -c for shell features
+                        cmd.extend(["sh", "-c", command_str])
                 else:
-                    # Multi-bit StringCommand (already has sh -c structure)
+                    # Multi-bit commands
+                    if sudo:
+                        if sudo_user:
+                            bits = ["sudo", "-H", "-u", sudo_user] + bits
+                        else:
+                            bits = ["sudo", "-H"] + bits
                     cmd.extend(bits)
             else:
                 # Handle plain lists or other iterables
@@ -398,8 +409,8 @@ class OrbStackConnector(BaseConnector):
                 print("Error: VM name not found in host data")
                 return False
 
-            sudo = arguments.get("sudo", False)
-            sudo_user = arguments.get("sudo_user")
+            sudo = arguments.get("sudo", arguments.get("_sudo", False))
+            sudo_user = arguments.get("sudo_user", arguments.get("_sudo_user"))
             mode = arguments.get("mode")  # Custom file permissions (e.g., "644", "755")
 
             if sudo:
@@ -506,8 +517,8 @@ class OrbStackConnector(BaseConnector):
                 print("Error: VM name not found in host data")
                 return False
 
-            sudo = arguments.get("sudo", False)
-            sudo_user = arguments.get("sudo_user")
+            sudo = arguments.get("sudo", arguments.get("_sudo", False))
+            sudo_user = arguments.get("sudo_user", arguments.get("_sudo_user"))
 
             if sudo:
                 import os

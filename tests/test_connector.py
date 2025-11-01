@@ -519,18 +519,17 @@ class TestOrbStackConnector(TestCase):
 
             assert success
 
-            # Verify sudo was prepended, then wrapped in sh -c
-            # The implementation applies sudo first, creating ["sudo", "-H", "apt-get update"]
-            # Then wraps single-bit in sh -c, but now it's multi-bit so no sh -c wrapping
+            # Verify single-bit command is wrapped in sh -c FIRST, then sudo wrapping
+            # New behavior: sh -c wrapping happens before sudo, ensuring proper execution
             call_args = mock_execute.call_args[0][0]
             assert call_args == [
                 "orbctl",
                 "run",
                 "-m",
                 "test-vm",
-                "sudo",
-                "-H",
-                "apt-get update",
+                "sh",
+                "-c",
+                "sudo -H sh -c 'apt-get update'",
             ]
 
     def test_run_shell_command_with_sudo_and_sudo_user_stringcommand(self):
