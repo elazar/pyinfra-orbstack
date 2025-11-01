@@ -19,6 +19,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.5.0] - 2025-11-01
+
+### Added
+
+- Add sudo and sudo_user argument support to `run_shell_command()` for operations requiring elevated privileges
+- Support for running commands as specific users via `_sudo_user` parameter
+- Safe command quoting with `shlex.quote()` for special characters
+- Comprehensive test suite with 9 new sudo-specific unit tests covering all command types
+
+### Changed
+
+- Connector coverage improved from 28% to 94% with new sudo tests
+- Total test count increased to 42 tests (all passing)
+
 ## [0.4.0] - 2025-11-01
 
 ### Fixed
@@ -125,7 +139,8 @@ Initial public release of PyInfra OrbStack Connector.
 - VM creation timeout handling with proper string matching
 - Worker VM reuse for 40% faster test execution
 
-[Unreleased]: https://github.com/elazar/pyinfra-orbstack/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/elazar/pyinfra-orbstack/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.1.0...v0.2.0
