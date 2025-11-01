@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **CRITICAL**: Fixed bash history expansion causing "command not found" errors for commands containing `!` (logical negation) when used with sudo. Commands with `!` now execute correctly by using `bash +H` to disable history expansion.
+
 ### Security
 
 ## [0.7.0] - 2025-11-01

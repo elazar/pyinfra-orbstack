@@ -434,7 +434,7 @@ class TestOrbStackConnector(TestCase):
 
             assert success
 
-            # Verify sudo was applied with proper quoting
+            # Verify sudo was applied with proper quoting and bash +H
             call_args = mock_execute.call_args[0][0]
             assert call_args == [
                 "orbctl",
@@ -443,7 +443,7 @@ class TestOrbStackConnector(TestCase):
                 "test-vm",
                 "sh",
                 "-c",
-                "sudo -H sh -c 'rm -f /var/lib/dpkg/lock'",
+                "sudo -H bash +H -c 'rm -f /var/lib/dpkg/lock'",
             ]
 
     def test_run_shell_command_with_sudo_and_sudo_user_string_command(self):
@@ -462,7 +462,7 @@ class TestOrbStackConnector(TestCase):
 
             assert success
 
-            # Verify sudo with user was applied
+            # Verify sudo with user was applied and bash +H is used
             # Note: shlex.quote() doesn't add quotes around simple alphanumeric strings
             call_args = mock_execute.call_args[0][0]
             assert call_args == [
@@ -472,7 +472,7 @@ class TestOrbStackConnector(TestCase):
                 "test-vm",
                 "sh",
                 "-c",
-                "sudo -H -u postgres sh -c whoami",
+                "sudo -H -u postgres bash +H -c whoami",
             ]
 
     def test_run_shell_command_with_sudo_stringcommand_multibit(self):
@@ -519,7 +519,7 @@ class TestOrbStackConnector(TestCase):
 
             assert success
 
-            # Verify single-bit command is wrapped in sh -c FIRST, then sudo wrapping
+            # Verify single-bit command is wrapped in sh -c FIRST, then sudo wrapping with bash +H
             # New behavior: sh -c wrapping happens before sudo, ensuring proper execution
             call_args = mock_execute.call_args[0][0]
             assert call_args == [
@@ -529,7 +529,7 @@ class TestOrbStackConnector(TestCase):
                 "test-vm",
                 "sh",
                 "-c",
-                "sudo -H sh -c 'apt-get update'",
+                "sudo -H bash +H -c 'apt-get update'",
             ]
 
     def test_run_shell_command_with_sudo_and_sudo_user_stringcommand(self):
@@ -642,7 +642,7 @@ class TestOrbStackConnector(TestCase):
 
             assert success
 
-            # Verify proper quoting with sudo
+            # Verify proper quoting with sudo and bash +H
             call_args = mock_execute.call_args[0][0]
             assert call_args == [
                 "orbctl",
@@ -651,7 +651,134 @@ class TestOrbStackConnector(TestCase):
                 "test-vm",
                 "sh",
                 "-c",
-                "sudo -H sh -c 'echo '\"'\"'test with spaces'\"'\"' > /etc/config'",
+                "sudo -H bash +H -c 'echo '\"'\"'test with spaces'\"'\"' > /etc/config'",
+            ]
+
+    def test_run_shell_command_with_sudo_logical_negation(self):
+        """Test sudo with command containing logical negation (!)."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = "MISSING\n"
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # Command with logical negation - this was the bug!
+            success, output = self.connector.run_shell_command(
+                "! test -e /etc/netplan/01-netcfg.yaml && echo MISSING", sudo=True
+            )
+
+            assert success
+            assert "MISSING" in str(output)
+
+            # Verify bash +H is used to disable history expansion
+            call_args = mock_execute.call_args[0][0]
+            assert call_args == [
+                "orbctl",
+                "run",
+                "-m",
+                "test-vm",
+                "sh",
+                "-c",
+                "sudo -H bash +H -c '! test -e /etc/netplan/01-netcfg.yaml && echo MISSING'",
+            ]
+
+    def test_run_shell_command_with_sudo_exclamation_in_string(self):
+        """Test sudo with command containing exclamation mark in a string."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = "Previous command: !\n"
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # Command with exclamation in string
+            success, output = self.connector.run_shell_command(
+                "echo 'Previous command: !' && echo done", sudo=True
+            )
+
+            assert success
+
+            # Verify bash +H is used
+            call_args = mock_execute.call_args[0][0]
+            assert "bash +H -c" in " ".join(call_args)
+
+    def test_run_shell_command_with_sudo_complex_timeout_command(self):
+        """Test sudo with complex timeout command from the actual failure."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = ""
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # Complex timeout command that might contain !
+            success, output = self.connector.run_shell_command(
+                "timeout 60 bash -c 'while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do echo Waiting; sleep 2; done' || true",
+                sudo=True,
+            )
+
+            assert success
+
+            # Verify bash +H is used
+            call_args = mock_execute.call_args[0][0]
+            assert "bash +H -c" in " ".join(call_args)
+
+    def test_run_shell_command_with_sudo_stringcommand_logical_negation(self):
+        """Test single-bit StringCommand with sudo and logical negation."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = "MISSING\n"
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # Single-bit StringCommand with logical negation
+            cmd = StringCommand("! test -e /path/to/file && echo MISSING")
+            success, output = self.connector.run_shell_command(cmd, sudo=True)
+
+            assert success
+
+            # Verify bash +H is used for single-bit commands
+            call_args = mock_execute.call_args[0][0]
+            assert call_args == [
+                "orbctl",
+                "run",
+                "-m",
+                "test-vm",
+                "sh",
+                "-c",
+                "sudo -H bash +H -c '! test -e /path/to/file && echo MISSING'",
+            ]
+
+    def test_run_shell_command_with_sudo_and_user_logical_negation(self):
+        """Test sudo with sudo_user and logical negation."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = ""
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # Command with logical negation and sudo_user
+            success, output = self.connector.run_shell_command(
+                "! test -e /home/postgres/.profile && echo MISSING",
+                sudo=True,
+                sudo_user="postgres",
+            )
+
+            assert success
+
+            # Verify bash +H is used with sudo_user
+            call_args = mock_execute.call_args[0][0]
+            assert call_args == [
+                "orbctl",
+                "run",
+                "-m",
+                "test-vm",
+                "sh",
+                "-c",
+                "sudo -H -u postgres bash +H -c '! test -e /home/postgres/.profile && echo MISSING'",
             ]
 
     def test_run_shell_command_without_sudo(self):
