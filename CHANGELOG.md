@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Refactored connector to use PyInfra's built-in `extract_control_arguments()` utility instead of manual parameter filtering, aligning with docker, dockerssh, and chroot connectors for improved consistency and maintainability.
+
 ### Deprecated
 
 ### Removed
