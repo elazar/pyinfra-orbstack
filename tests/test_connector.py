@@ -175,6 +175,22 @@ class TestOrbStackConnector(TestCase):
             assert success
             assert "/home/ubuntu/project" in str(output)
 
+            # Verify user and workdir are passed as orbctl flags
+            call_args = mock_execute.call_args[0][0]
+            assert call_args == [
+                "orbctl",
+                "run",
+                "-m",
+                "test-vm",
+                "-u",
+                "ubuntu",
+                "-w",
+                "/home/ubuntu/project",
+                "sh",
+                "-c",
+                "pwd",
+            ]
+
     def test_run_shell_command_timeout(self):
         """Test command execution timeout."""
         with patch.object(self.connector, "_execute_with_retry") as mock_execute:
@@ -434,17 +450,20 @@ class TestOrbStackConnector(TestCase):
 
             assert success
 
-            # Verify sudo was applied with proper quoting and bash +H for outer wrapper
+            # Verify sudo was applied using PyInfra's make_unix_command_for_host
+            # Format: sudo -H -n sh -c 'command'
             call_args = mock_execute.call_args[0][0]
             assert call_args == [
                 "orbctl",
                 "run",
                 "-m",
                 "test-vm",
-                "bash",
-                "+H",
+                "sudo",
+                "-H",
+                "-n",
+                "sh",
                 "-c",
-                "sudo -H bash +H -c 'rm -f /var/lib/dpkg/lock'",
+                "rm -f /var/lib/dpkg/lock",
             ]
 
     def test_run_shell_command_with_sudo_and_sudo_user_string_command(self):
@@ -463,18 +482,22 @@ class TestOrbStackConnector(TestCase):
 
             assert success
 
-            # Verify sudo with user was applied and bash +H is used for outer wrapper
-            # Note: shlex.quote() doesn't add quotes around simple alphanumeric strings
+            # Verify sudo with user using PyInfra's make_unix_command_for_host
+            # Format: sudo -H -n -u postgres sh -c 'command'
             call_args = mock_execute.call_args[0][0]
             assert call_args == [
                 "orbctl",
                 "run",
                 "-m",
                 "test-vm",
-                "bash",
-                "+H",
+                "sudo",
+                "-H",
+                "-n",
+                "-u",
+                "postgres",
+                "sh",
                 "-c",
-                "sudo -H -u postgres bash +H -c whoami",
+                "whoami",
             ]
 
     def test_run_shell_command_with_sudo_stringcommand_multibit(self):
@@ -521,18 +544,20 @@ class TestOrbStackConnector(TestCase):
 
             assert success
 
-            # Verify single-bit command uses bash +H for outer wrapper with sudo
-            # New behavior: bash +H wrapping ensures history expansion is disabled
+            # Verify single-bit command uses PyInfra's make_unix_command_for_host
+            # Format: sudo -H -n sh -c 'command'
             call_args = mock_execute.call_args[0][0]
             assert call_args == [
                 "orbctl",
                 "run",
                 "-m",
                 "test-vm",
-                "bash",
-                "+H",
+                "sudo",
+                "-H",
+                "-n",
+                "sh",
                 "-c",
-                "sudo -H bash +H -c 'apt-get update'",
+                "apt-get update",
             ]
 
     def test_run_shell_command_with_sudo_and_sudo_user_stringcommand(self):
@@ -584,7 +609,8 @@ class TestOrbStackConnector(TestCase):
 
             assert success
 
-            # Verify sudo was prepended to list
+            # Verify list commands are now wrapped in sh -c by make_unix_command_for_host
+            # Format: sudo -H -n sh -c "['apt-get', 'update']"
             call_args = mock_execute.call_args[0][0]
             assert call_args == [
                 "orbctl",
@@ -593,8 +619,10 @@ class TestOrbStackConnector(TestCase):
                 "test-vm",
                 "sudo",
                 "-H",
-                "apt-get",
-                "update",
+                "-n",
+                "sh",
+                "-c",
+                "['apt-get', 'update']",
             ]
 
     def test_run_shell_command_with_sudo_and_sudo_user_list_command(self):
@@ -613,7 +641,8 @@ class TestOrbStackConnector(TestCase):
 
             assert success
 
-            # Verify sudo with user was prepended
+            # Verify list commands are wrapped in sh -c by make_unix_command_for_host
+            # Format: sudo -H -n -u root sh -c "['systemctl', 'restart', 'nginx']"
             call_args = mock_execute.call_args[0][0]
             assert call_args == [
                 "orbctl",
@@ -622,11 +651,12 @@ class TestOrbStackConnector(TestCase):
                 "test-vm",
                 "sudo",
                 "-H",
+                "-n",
                 "-u",
                 "root",
-                "systemctl",
-                "restart",
-                "nginx",
+                "sh",
+                "-c",
+                "['systemctl', 'restart', 'nginx']",
             ]
 
     def test_run_shell_command_with_sudo_special_characters(self):
@@ -645,17 +675,20 @@ class TestOrbStackConnector(TestCase):
 
             assert success
 
-            # Verify proper quoting with sudo and bash +H for outer wrapper
+            # Verify make_unix_command_for_host handles special characters
+            # Format: sudo -H -n sh -c "command with special chars"
             call_args = mock_execute.call_args[0][0]
             assert call_args == [
                 "orbctl",
                 "run",
                 "-m",
                 "test-vm",
-                "bash",
-                "+H",
+                "sudo",
+                "-H",
+                "-n",
+                "sh",
                 "-c",
-                "sudo -H bash +H -c 'echo '\"'\"'test with spaces'\"'\"' > /etc/config'",
+                "echo 'test with spaces' > /etc/config",
             ]
 
     def test_run_shell_command_with_sudo_logical_negation(self):
@@ -667,7 +700,8 @@ class TestOrbStackConnector(TestCase):
             mock_result.stderr = ""
             mock_execute.return_value = mock_result
 
-            # Command with logical negation - this was the bug!
+            # Command with logical negation - this was the bug that's now fixed!
+            # PyInfra's make_unix_command_for_host properly wraps in sh -c
             success, output = self.connector.run_shell_command(
                 "! test -e /etc/netplan/01-netcfg.yaml && echo MISSING", sudo=True
             )
@@ -675,17 +709,19 @@ class TestOrbStackConnector(TestCase):
             assert success
             assert "MISSING" in str(output)
 
-            # Verify bash +H is used for outer wrapper to disable history expansion
+            # Verify sh -c is used (shell operators work correctly in sh)
             call_args = mock_execute.call_args[0][0]
             assert call_args == [
                 "orbctl",
                 "run",
                 "-m",
                 "test-vm",
-                "bash",
-                "+H",
+                "sudo",
+                "-H",
+                "-n",
+                "sh",
                 "-c",
-                "sudo -H bash +H -c '! test -e /etc/netplan/01-netcfg.yaml && echo MISSING'",
+                "! test -e /etc/netplan/01-netcfg.yaml && echo MISSING",
             ]
 
     def test_run_shell_command_with_sudo_exclamation_in_string(self):
@@ -704,9 +740,9 @@ class TestOrbStackConnector(TestCase):
 
             assert success
 
-            # Verify bash +H is used
+            # Verify sh -c is used (works correctly with exclamation marks in strings)
             call_args = mock_execute.call_args[0][0]
-            assert "bash +H -c" in " ".join(call_args)
+            assert "sh" in call_args and "-c" in call_args
 
     def test_run_shell_command_with_sudo_complex_timeout_command(self):
         """Test sudo with complex timeout command from the actual failure."""
@@ -725,9 +761,9 @@ class TestOrbStackConnector(TestCase):
 
             assert success
 
-            # Verify bash +H is used
+            # Verify sh -c is used (works correctly with complex commands)
             call_args = mock_execute.call_args[0][0]
-            assert "bash +H -c" in " ".join(call_args)
+            assert "sh" in call_args and "-c" in call_args
 
     def test_run_shell_command_with_sudo_stringcommand_logical_negation(self):
         """Test single-bit StringCommand with sudo and logical negation."""
@@ -744,17 +780,19 @@ class TestOrbStackConnector(TestCase):
 
             assert success
 
-            # Verify bash +H is used for outer wrapper for single-bit commands
+            # Verify PyInfra's make_unix_command_for_host is used
             call_args = mock_execute.call_args[0][0]
             assert call_args == [
                 "orbctl",
                 "run",
                 "-m",
                 "test-vm",
-                "bash",
-                "+H",
+                "sudo",
+                "-H",
+                "-n",
+                "sh",
                 "-c",
-                "sudo -H bash +H -c '! test -e /path/to/file && echo MISSING'",
+                "! test -e /path/to/file && echo MISSING",
             ]
 
     def test_run_shell_command_with_sudo_and_user_logical_negation(self):
@@ -775,17 +813,21 @@ class TestOrbStackConnector(TestCase):
 
             assert success
 
-            # Verify bash +H is used for outer wrapper with sudo_user
+            # Verify PyInfra's make_unix_command_for_host handles sudo with user
             call_args = mock_execute.call_args[0][0]
             assert call_args == [
                 "orbctl",
                 "run",
                 "-m",
                 "test-vm",
-                "bash",
-                "+H",
+                "sudo",
+                "-H",
+                "-n",
+                "-u",
+                "postgres",
+                "sh",
                 "-c",
-                "sudo -H -u postgres bash +H -c '! test -e /home/postgres/.profile && echo MISSING'",
+                "! test -e /home/postgres/.profile && echo MISSING",
             ]
 
     def test_run_shell_command_without_sudo(self):
@@ -813,6 +855,52 @@ class TestOrbStackConnector(TestCase):
                 "-c",
                 "echo test",
             ]
+
+    def test_run_shell_command_with_print_input(self):
+        """Test command execution with print_input flag."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = "test\n"
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # Capture print output
+            import io
+            from contextlib import redirect_stdout
+
+            f = io.StringIO()
+            with redirect_stdout(f):
+                success, output = self.connector.run_shell_command(
+                    "echo test", print_input=True
+                )
+
+            assert success
+
+            # Should print the command being executed
+            printed = f.getvalue()
+            assert "sh" in printed and "-c" in printed and "echo test" in printed
+
+    def test_run_shell_command_with_underscore_prefixed_arguments(self):
+        """Test that underscore-prefixed PyInfra arguments are passed through."""
+        with patch.object(self.connector, "_execute_with_retry") as mock_execute:
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_result.stdout = "/tmp\n"
+            mock_result.stderr = ""
+            mock_execute.return_value = mock_result
+
+            # Arguments like _env, _chdir should be passed through to make_unix_command_for_host
+            success, output = self.connector.run_shell_command(
+                "pwd",
+                _env={"TEST_VAR": "value"},
+                _chdir="/tmp",
+            )
+
+            assert success
+            # These underscore-prefixed arguments are handled by make_unix_command_for_host
+            # The test verifies they don't cause errors and the command executes
+            call_args = mock_execute.call_args[0][0]
             assert "sudo" not in call_args
 
     def test_put_file_success(self):

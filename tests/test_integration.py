@@ -988,42 +988,112 @@ class TestPhase3ANetworkingIntegration:
         assert "mail is handled by" in dns_result.stdout
 
     def test_cross_vm_connectivity_orb_local(self):
-        """Test connectivity between VMs using .orb.local domains."""
-        # Get list of running VMs
-        list_result = subprocess.run(
-            ["orbctl", "list", "-f", "json"],
-            capture_output=True,
-            text=True,
-            timeout=10,
+        """Test connectivity between VMs using .orb.local domains.
+
+        This test provisions its own VMs if needed and cleans them up afterwards.
+        """
+        from tests.test_utils import (
+            create_vm_with_retry,
+            delete_vm_with_retry,
+            register_test_vm_for_cleanup,
+            start_vm_with_retry,
+            wait_for_vm_ready,
         )
 
-        if list_result.returncode != 0:
-            pytest.skip("No VMs available for testing")
+        # Track VMs we create so we can clean them up
+        created_vms = []
 
-        vms = json.loads(list_result.stdout)
-        running_vms = [vm for vm in vms if vm.get("state") == "RUNNING"]
-
-        if len(running_vms) < 2:
-            pytest.skip("Need at least 2 running VMs for cross-VM connectivity test")
-
-        # Test DNS resolution of .orb.local domain
-        vm1_name = running_vms[0].get("name")
-        vm1_domain = f"{vm1_name}.orb.local"
-
-        dns_result = subprocess.run(
-            ["host", "-t", "A", vm1_domain],
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-
-        # [Inference] .orb.local domains should resolve if OrbStack networking is configured
-        # If this fails, it may indicate OrbStack networking configuration issues
-        if dns_result.returncode == 0:
-            assert (
-                "has address" in dns_result.stdout
-                or "has IPv4 address" in dns_result.stdout
+        try:
+            # Get list of running VMs
+            list_result = subprocess.run(
+                ["orbctl", "list", "-f", "json"],
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
+
+            if list_result.returncode != 0:
+                pytest.skip("Unable to list VMs")
+
+            vms = json.loads(list_result.stdout)
+            running_vms = [vm for vm in vms if vm.get("state") == "RUNNING"]
+
+            # Provision additional VMs if needed
+            vms_needed = 2 - len(running_vms)
+            if vms_needed > 0:
+                print(
+                    f"\nProvisioning {vms_needed} additional VM(s) for connectivity test..."
+                )
+
+                for i in range(vms_needed):
+                    import time
+
+                    vm_name = f"pytest-connectivity-{int(time.time())}-{i}"
+
+                    # Register for cleanup before creating
+                    register_test_vm_for_cleanup(vm_name)
+                    created_vms.append(vm_name)
+
+                    # Create VM
+                    if not create_vm_with_retry(
+                        image="ubuntu:22.04",
+                        vm_name=vm_name,
+                        auto_cleanup=False,  # Already registered above
+                    ):
+                        pytest.fail(f"Failed to create test VM: {vm_name}")
+
+                    # Start VM
+                    if not start_vm_with_retry(vm_name):
+                        pytest.fail(f"Failed to start test VM: {vm_name}")
+
+                    # Wait for VM to be ready
+                    if not wait_for_vm_ready(vm_name, timeout=30):
+                        pytest.fail(f"Test VM {vm_name} did not become ready")
+
+                    print(f"  Created and started {vm_name}")
+
+                    # Add to running_vms list
+                    running_vms.append({"name": vm_name, "state": "RUNNING"})
+
+            # Now we have at least 2 running VMs - test connectivity
+            assert len(running_vms) >= 2, "Should have at least 2 running VMs"
+
+            # Test DNS resolution of .orb.local domain
+            vm1_name = running_vms[0].get("name")
+            vm1_domain = f"{vm1_name}.orb.local"
+
+            dns_result = subprocess.run(
+                ["host", "-t", "A", vm1_domain],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+
+            # .orb.local domains should resolve if OrbStack networking is configured
+            if dns_result.returncode == 0:
+                assert (
+                    "has address" in dns_result.stdout
+                    or "has IPv4 address" in dns_result.stdout
+                ), f"DNS resolution for {vm1_domain} succeeded but didn't return an address"
+            else:
+                # DNS resolution failed - skip test if .orb.local isn't configured
+                # This is a configuration issue, not a test failure
+                pytest.skip(
+                    f"DNS resolution for {vm1_domain} failed (NXDOMAIN). "
+                    f"OrbStack .orb.local DNS may not be enabled. "
+                    f"This is expected on some OrbStack configurations."
+                )
+
+        finally:
+            # Clean up any VMs we created
+            if created_vms:
+                print(f"\nCleaning up {len(created_vms)} test VM(s)...")
+                for vm_name in created_vms:
+                    try:
+                        delete_vm_with_retry(vm_name, force=True)
+                        print(f"  Deleted {vm_name}")
+                    except Exception as e:
+                        print(f"  Warning: Failed to delete {vm_name}: {e}")
 
 
 # Mark all tests as integration tests

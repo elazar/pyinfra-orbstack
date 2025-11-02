@@ -14,7 +14,11 @@ from typing import Any, Optional
 
 from pyinfra.api import StringCommand
 from pyinfra.connectors.base import BaseConnector
-from pyinfra.connectors.util import CommandOutput, OutputLine
+from pyinfra.connectors.util import (
+    CommandOutput,
+    OutputLine,
+    make_unix_command_for_host,
+)
 
 
 class OrbStackConnector(BaseConnector):
@@ -30,6 +34,12 @@ class OrbStackConnector(BaseConnector):
     def __init__(self, state: Any, host: Any) -> None:
         """Initialize the OrbStack connector."""
         super().__init__(state, host)
+
+        # Initialize connector_data if not present (needed for make_unix_command_for_host)
+        if not hasattr(host, "connector_data") or not isinstance(
+            host.connector_data, dict
+        ):
+            host.connector_data = {}
 
     def _execute_with_retry(
         self,
@@ -245,7 +255,7 @@ class OrbStackConnector(BaseConnector):
         **arguments: Any,
     ) -> tuple[bool, CommandOutput]:
         """
-        Execute a shell command in OrbStack VM with sudo support.
+        Execute a shell command in OrbStack VM.
 
         Args:
             command: Command to execute
@@ -263,83 +273,84 @@ class OrbStackConnector(BaseConnector):
                     [OutputLine("stderr", "VM name not found in host data")]
                 )
 
-            # Extract sudo-related arguments
-            # PyInfra passes arguments with underscore prefix (_sudo, _sudo_user)
-            # but we also check non-prefixed versions for compatibility
-            sudo = arguments.get("sudo", arguments.get("_sudo", False))
-            sudo_user = arguments.get("sudo_user", arguments.get("_sudo_user"))
+            # Check if command is already wrapped (multi-bit StringCommand starting with shell)
+            # Operations send pre-wrapped commands like: StringCommand("sh", "-c", "command")
+            # Facts send unwrapped commands like: "! test -e /path || ..."
+            is_prewrapped = False
+            if hasattr(command, "bits") and len(command.bits) >= 2:
+                # Multi-bit command like ('sh', '-c', 'actual command')
+                first_bit = str(command.bits[0])
+                if first_bit in ("sh", "bash"):
+                    is_prewrapped = True
 
-            # Build orbctl run command
+            if is_prewrapped:
+                # Pre-wrapped command from operations - use directly
+                # But still need to handle sudo
+                sudo = arguments.get("sudo", arguments.get("_sudo", False))
+                sudo_user = arguments.get("sudo_user", arguments.get("_sudo_user"))
+
+                bits = [str(bit) for bit in command.bits]
+
+                if sudo:
+                    if sudo_user:
+                        bits = ["sudo", "-H", "-u", sudo_user] + bits
+                    else:
+                        bits = ["sudo", "-H"] + bits
+
+                command_args = bits
+            else:
+                # Unwrapped command from facts - let PyInfra handle wrapping
+                # Convert legacy argument names to underscore-prefixed versions
+                # and filter out OrbStack-specific arguments that PyInfra doesn't understand
+                pyinfra_arguments = {}
+                orbstack_specific_args = {"user", "workdir", "max_retries", "timeout"}
+
+                for key, value in arguments.items():
+                    if key in orbstack_specific_args:
+                        # Skip OrbStack-specific arguments
+                        continue
+                    elif key == "sudo":
+                        pyinfra_arguments["_sudo"] = value
+                    elif key == "sudo_user":
+                        pyinfra_arguments["_sudo_user"] = value
+                    elif not key.startswith("_"):
+                        # Pass through other non-sudo arguments
+                        pyinfra_arguments[key] = value
+                    else:
+                        # Already has underscore prefix
+                        pyinfra_arguments[key] = value
+
+                unix_command = make_unix_command_for_host(
+                    self.state,
+                    self.host,
+                    command,
+                    **pyinfra_arguments,
+                )
+                actual_command = unix_command.get_raw_value()
+
+                # Parse the command into arguments using shlex
+                command_args = shlex.split(actual_command)
+
+            # Build orbctl run command with parsed arguments
             cmd = ["orbctl", "run", "-m", vm_name]
 
-            # Add user if specified
+            # Add OrbStack-specific flags if provided
             user = arguments.get("user")
             if user:
                 cmd.extend(["-u", user])
 
-            # Add working directory if specified
             workdir = arguments.get("workdir")
             if workdir:
                 cmd.extend(["-w", workdir])
 
-            # Add the actual command - handle str, StringCommand, and lists
-            if isinstance(command, str):
-                # Apply sudo if requested
-                if sudo:
-                    # Disable bash history expansion (+H) to handle ! in commands
-                    # Use bash instead of sh to support the +H option
-                    quoted_command = shlex.quote(command)
-                    if sudo_user:
-                        command = f"sudo -H -u {sudo_user} bash +H -c {quoted_command}"
-                    else:
-                        command = f"sudo -H bash +H -c {quoted_command}"
-                    # Pass bash command directly without additional shell wrapper
-                    cmd.extend(["bash", "+H", "-c", command])
-                else:
-                    # Plain strings need to be wrapped in sh -c for shell interpretation
-                    cmd.extend(["sh", "-c", command])
-            elif hasattr(command, "bits"):
-                # StringCommand.bits contains individual arguments
-                bits = [str(bit) for bit in command.bits]
+            cmd.extend(command_args)
 
-                # Handle single-bit commands (need sh -c wrapping)
-                if len(bits) == 1:
-                    command_str = bits[0]
-                    if sudo:
-                        # Quote and wrap properly for sudo
-                        # Disable bash history expansion (+H) to handle ! in commands
-                        quoted_command = shlex.quote(command_str)
-                        if sudo_user:
-                            full_cmd = (
-                                f"sudo -H -u {sudo_user} bash +H -c {quoted_command}"
-                            )
-                        else:
-                            full_cmd = f"sudo -H bash +H -c {quoted_command}"
-                        # Pass bash command directly without additional shell wrapper
-                        cmd.extend(["bash", "+H", "-c", full_cmd])
-                    else:
-                        # No sudo, just wrap in sh -c for shell features
-                        cmd.extend(["sh", "-c", command_str])
-                else:
-                    # Multi-bit commands
-                    if sudo:
-                        if sudo_user:
-                            bits = ["sudo", "-H", "-u", sudo_user] + bits
-                        else:
-                            bits = ["sudo", "-H"] + bits
-                    cmd.extend(bits)
-            else:
-                # Handle plain lists or other iterables
-                args = [str(arg) for arg in command]
-
-                # Apply sudo if requested
-                if sudo:
-                    if sudo_user:
-                        args = ["sudo", "-H", "-u", sudo_user] + args
-                    else:
-                        args = ["sudo", "-H"] + args
-
-                cmd.extend(args)
+            if print_input:
+                command_str = " ".join(command_args)
+                print(
+                    f"{self.host.print_prefix}>>> {command_str}",
+                    file=None,
+                )
 
             # Determine if this is a network-heavy operation
             command_str = str(command).lower()
@@ -366,19 +377,25 @@ class OrbStackConnector(BaseConnector):
                 is_network_operation=is_network_operation,
             )
 
-            # Create OutputLine objects for stdout and stderr
-            combined_lines = []
+            # Parse output into CommandOutput format
+            output_lines = []
             if result.stdout:
                 for line in result.stdout.splitlines():
-                    combined_lines.append(OutputLine("stdout", line))
+                    output_lines.append(OutputLine("stdout", line))
             if result.stderr:
                 for line in result.stderr.splitlines():
-                    combined_lines.append(OutputLine("stderr", line))
+                    output_lines.append(OutputLine("stderr", line))
+
+            if print_output:
+                for line in output_lines:
+                    prefix = self.host.print_prefix
+                    print(
+                        f"{prefix}{line.line}",
+                        file=None if line.stream == "stdout" else None,
+                    )
 
             success = result.returncode == 0
-            output = CommandOutput(combined_lines)
-
-            return success, output
+            return success, CommandOutput(output_lines)
 
         except subprocess.TimeoutExpired:
             return False, CommandOutput([OutputLine("stderr", "Command timed out")])
