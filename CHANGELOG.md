@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.11.0] - 2025-11-02
+
+### Fixed
+
+- **CRITICAL**: Fixed bug introduced in v0.10.0 where connector control parameters (`_success_exit_codes`, `_timeout`, `_get_pty`, `_stdin`) were incorrectly passed to `make_unix_command_for_host()`, causing all fact gathering operations to fail with "make_unix_command() got an unexpected keyword argument '_success_exit_codes'". These parameters are now correctly filtered out before command generation and only used by the connector itself for command execution control. This restores deployment success rate from 0% to ~100%.
+
 ## [0.10.0] - 2025-11-02
 
 ### Changed
@@ -200,7 +206,8 @@ Initial public release of PyInfra OrbStack Connector.
 - VM creation timeout handling with proper string matching
 - Worker VM reuse for 40% faster test execution
 
-[Unreleased]: https://github.com/elazar/pyinfra-orbstack/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/elazar/pyinfra-orbstack/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.7.0...v0.8.0
