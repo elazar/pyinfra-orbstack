@@ -20,6 +20,16 @@ from pyinfra.connectors.util import (
     make_unix_command_for_host,
 )
 
+# Parameters that should NOT be passed to make_unix_command_for_host()
+# These are connector control parameters used after command execution
+# See: pyinfra/api/arguments.py - "Connector control (outside of command generation)"
+CONNECTOR_CONTROL_PARAMS = {
+    "_success_exit_codes",  # Exit codes that indicate command success
+    "_timeout",  # Command execution timeout
+    "_get_pty",  # Whether to allocate a pseudo-TTY
+    "_stdin",  # Standard input for the command
+}
+
 
 class OrbStackConnector(BaseConnector):
     """
@@ -320,11 +330,19 @@ class OrbStackConnector(BaseConnector):
                         # Already has underscore prefix
                         pyinfra_arguments[key] = value
 
+                # Filter out connector control parameters before calling make_unix_command_for_host
+                # These parameters are for connector use AFTER command generation
+                command_gen_args = {
+                    k: v
+                    for k, v in pyinfra_arguments.items()
+                    if k not in CONNECTOR_CONTROL_PARAMS
+                }
+
                 unix_command = make_unix_command_for_host(
                     self.state,
                     self.host,
                     command,
-                    **pyinfra_arguments,
+                    **command_gen_args,
                 )
                 actual_command = unix_command.get_raw_value()
 
@@ -394,7 +412,10 @@ class OrbStackConnector(BaseConnector):
                         file=None if line.stream == "stdout" else None,
                     )
 
-            success = result.returncode == 0
+            # Use _success_exit_codes from original arguments if provided
+            # This is a connector control parameter, not passed to command generation
+            success_exit_codes = arguments.get("_success_exit_codes", [0])
+            success = result.returncode in success_exit_codes
             return success, CommandOutput(output_lines)
 
         except subprocess.TimeoutExpired:
