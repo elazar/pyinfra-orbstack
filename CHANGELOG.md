@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.10.0] - 2025-11-02
+
+### Changed
+
+- **BREAKING (Internal)**: Refactored `run_shell_command()` to use PyInfra's standard `make_unix_command_for_host()` utility for command preparation, aligning with other PyInfra connectors (SSH, Local, Docker, Podman, Chroot, DockerSSH). This change improves consistency, maintainability, and ensures correct handling of fact gathering, shell operators, and sudo elevation. While this is an internal refactor with no expected user-visible changes, it represents a significant architectural improvement.
+- Improved `test_cross_vm_connectivity_orb_local` integration test to provision and cleanup its own VMs, making it self-sufficient and more reliable. The test now gracefully skips when `.orb.local` DNS is not configured rather than failing.
+- Connector test coverage improved from 90% to 93%, with 338 total tests passing.
+
+### Fixed
+
+- Fixed potential `TypeError` when `make_unix_command_for_host()` accesses `host.connector_data` by ensuring it's always initialized as a dictionary in the connector's `__init__` method.
+
 ## [0.9.0] - 2025-11-01
 
 ### Fixed
@@ -188,7 +200,8 @@ Initial public release of PyInfra OrbStack Connector.
 - VM creation timeout handling with proper string matching
 - Worker VM reuse for 40% faster test execution
 
-[Unreleased]: https://github.com/elazar/pyinfra-orbstack/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/elazar/pyinfra-orbstack/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/elazar/pyinfra-orbstack/compare/v0.6.0...v0.7.0
